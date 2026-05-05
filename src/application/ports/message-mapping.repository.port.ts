@@ -4,7 +4,7 @@ export interface MessageMapping {
   chatwootMessageId: number;
   chatwootConversationId: number;
   wuzapiPhone: string;
-  chatwootContactId: number;
+  chatwootContactId?: number;
   direction: "inbound" | "outbound";
   part?: number;
   createdAt: Date;

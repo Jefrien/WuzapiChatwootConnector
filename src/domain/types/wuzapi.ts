@@ -166,6 +166,37 @@ export interface WuzapiDownloadMediaResponse {
   Mimetype: string;
 }
 
+export interface WuzapiListRow {
+  RowId: string;
+  Title: string;
+  Description: string;
+}
+
+export interface WuzapiListSection {
+  Title: string;
+  Rows: WuzapiListRow[];
+}
+
+export interface WuzapiSendListPayload {
+  Phone: string;
+  Title: string;
+  Description: string;
+  ButtonText: string;
+  Sections: WuzapiListSection[];
+}
+
+export interface WuzapiButton {
+  ButtonId: string;
+  ButtonText: string;
+}
+
+export interface WuzapiSendButtonsPayload {
+  Phone: string;
+  Body: string;
+  Footer?: string;
+  Buttons: WuzapiButton[];
+}
+
 export interface WuzapiApiResponse<T = unknown> {
   code: number;
   data: T;

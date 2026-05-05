@@ -6,6 +6,8 @@ import type {
   WuzapiSendVideoPayload,
   WuzapiSendStickerPayload,
   WuzapiSendLocationPayload,
+  WuzapiSendListPayload,
+  WuzapiSendButtonsPayload,
   WuzapiDownloadMediaPayload,
   WuzapiDownloadMediaResponse,
   WuzapiApiResponse,
@@ -21,6 +23,8 @@ export interface IWuzapiClient {
   sendVideo(payload: WuzapiSendVideoPayload): Promise<WuzapiApiResponse<{ Id: string; Timestamp: string }>>;
   sendSticker(payload: WuzapiSendStickerPayload): Promise<WuzapiApiResponse<{ Id: string; Timestamp: string }>>;
   sendLocation(payload: WuzapiSendLocationPayload): Promise<WuzapiApiResponse<{ Id: string; Timestamp: string }>>;
+  sendList(payload: WuzapiSendListPayload): Promise<WuzapiApiResponse<{ Id: string; Timestamp: string }>>;
+  sendButtons(payload: WuzapiSendButtonsPayload): Promise<WuzapiApiResponse<{ Id: string; Timestamp: string }>>;
   downloadImage(payload: WuzapiDownloadMediaPayload): Promise<WuzapiApiResponse<WuzapiDownloadMediaResponse>>;
   downloadVideo(payload: WuzapiDownloadMediaPayload): Promise<WuzapiApiResponse<WuzapiDownloadMediaResponse>>;
   downloadAudio(payload: WuzapiDownloadMediaPayload): Promise<WuzapiApiResponse<WuzapiDownloadMediaResponse>>;
