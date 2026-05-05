@@ -1,65 +1,78 @@
 export interface WuzapiWebhookPayload {
   type: string;
-  event?: unknown;
+  event?: WuzapiMessageEvent;
   userID?: string;
   instanceName?: string;
+  jsonData?: string;
+}
+
+export interface WuzapiMessageInfo {
+  AddressingMode?: string;
+  BroadcastListOwner?: string;
+  BroadcastRecipients?: unknown;
+  Category?: string;
+  Chat: string;              // JID del chat: "40888608784419@lid" o "120363...@g.us"
+  DeviceSentMeta?: unknown;
+  Edit?: string;
+  ID: string;                // ID del mensaje
+  IsFromMe: boolean;
+  IsGroup: boolean;
+  MediaType?: string;        // "ptt", "image", etc.
+  MsgBotInfo?: unknown;
+  MsgMetaInfo?: unknown;
+  Multicast?: boolean;
+  PushName: string;          // Nombre del contacto
+  RecipientAlt?: string;
+  Sender: string;            // JID del remitente
+  SenderAlt?: string;        // JID alternativo con número real: "50256207408@s.whatsapp.net"
+  ServerID?: number;
+  Timestamp: string;         // ISO 8601
+  Type?: string;             // "media", "text", etc.
+  VerifiedName?: unknown;
+}
+
+export interface WuzapiMediaMessage {
+  URL?: string;
+  directPath?: string;
+  fileEncSHA256?: string;
+  fileLength?: number;
+  fileSHA256?: string;
+  mediaKey?: string;
+  mediaKeyTimestamp?: number;
+  mimetype?: string;
+  caption?: string;
+  seconds?: number;
+  PTT?: boolean;
+  waveform?: string;
+  fileName?: string;
+  isAnimated?: boolean;
 }
 
 export interface WuzapiMessageEvent {
-  Info: {
-    ID: string;
-    PushName: string;
-    Timestamp: string;
-    SourceString: string;
-    IsFromMe: boolean;
-    IsGroup: boolean;
-    Sender: {
-      User: string;
-      Server: string;
-      RawAgent?: string;
-      Device?: number;
-    };
-    Chat: {
-      User: string;
-      Server: string;
-    };
-    Type?: string;
-    Category?: string;
-  };
+  Info: WuzapiMessageInfo;
+  IsBotInvoke?: boolean;
+  IsDocumentWithCaption?: boolean;
+  IsEdit?: boolean;
+  IsEphemeral?: boolean;
+  IsLottieSticker?: boolean;
+  IsViewOnce?: boolean;
+  IsViewOnceV2?: boolean;
+  IsViewOnceV2Extension?: boolean;
   Message: {
     conversation?: string;
     extendedTextMessage?: {
-      text: string;
+      text?: string;
       contextInfo?: {
         stanzaId?: string;
         participant?: string;
-        quotedMessage?: {
-          conversation?: string;
-        };
+        quotedMessage?: { conversation?: string };
       };
     };
-    imageMessage?: {
-      caption?: string;
-      mimetype?: string;
-    };
-    videoMessage?: {
-      caption?: string;
-      mimetype?: string;
-    };
-    audioMessage?: {
-      mimetype?: string;
-      ptt?: boolean;
-      seconds?: number;
-    };
-    documentMessage?: {
-      caption?: string;
-      mimetype?: string;
-      fileName?: string;
-    };
-    stickerMessage?: {
-      mimetype?: string;
-      isAnimated?: boolean;
-    };
+    imageMessage?: WuzapiMediaMessage;
+    videoMessage?: WuzapiMediaMessage;
+    audioMessage?: WuzapiMediaMessage;
+    documentMessage?: WuzapiMediaMessage;
+    stickerMessage?: WuzapiMediaMessage;
     contactMessage?: {
       displayName?: string;
       vcard?: string;
@@ -71,46 +84,20 @@ export interface WuzapiMessageEvent {
       address?: string;
     };
     reactionMessage?: {
-      key?: {
-        id?: string;
-      };
+      key?: { id?: string };
       text?: string;
     };
     protocolMessage?: {
       type?: number;
-      key?: {
-        id?: string;
-      };
+      key?: { id?: string };
     };
+    messageContextInfo?: unknown;
   };
-  IsViewOnce?: boolean;
-  IsEphemeral?: boolean;
-}
-
-export interface WuzapiMessageWebhook extends WuzapiWebhookPayload {
-  type: "Message";
-  event: WuzapiMessageEvent;
-  base64?: string;
-  mimeType?: string;
-  fileName?: string;
-  s3?: {
-    url: string;
-    bucket?: string;
-    key?: string;
-  };
-}
-
-export interface WuzapiReadReceiptEvent {
-  MessageIDs: string[];
-  SourceString: string;
-  Timestamp: string;
-  Type?: string;
-}
-
-export interface WuzapiReadReceiptWebhook extends WuzapiWebhookPayload {
-  type: "ReadReceipt";
-  event: WuzapiReadReceiptEvent;
-  state: "Read" | "ReadSelf" | "Delivered";
+  RawMessage?: unknown;
+  RetryCount?: number;
+  SourceWebMsg?: unknown;
+  UnavailableRequestID?: string;
+  NewsletterMeta?: unknown;
 }
 
 export interface WuzapiSendTextPayload {
@@ -162,6 +149,16 @@ export interface WuzapiSendLocationPayload {
   Longitude: number;
   Name?: string;
   Address?: string;
+}
+
+export interface WuzapiDownloadMediaPayload {
+  Url?: string;
+  DirectPath?: string;
+  MediaKey?: string;
+  Mimetype?: string;
+  FileEncSHA256?: string;
+  FileSHA256?: string;
+  FileLength?: number;
 }
 
 export interface WuzapiApiResponse<T = unknown> {

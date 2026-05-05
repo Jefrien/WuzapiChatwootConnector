@@ -14,10 +14,6 @@ wuzapiWebhookController.post("/wuzapi", validateBody(wuzapiWebhookSchema), async
       userID?: string;
       instanceName?: string;
       jsonData?: string;
-      base64?: string;
-      mimeType?: string;
-      fileName?: string;
-      s3?: Record<string, unknown>;
     };
 
     // Wuzapi sends webhooks with jsonData field containing the actual payload

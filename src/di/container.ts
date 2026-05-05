@@ -10,8 +10,10 @@ import { MessageMappingRepository } from "../infrastructure/persistence/message-
 export function registerDependencies(): void {
   container.register(CHATWOOT_CLIENT_TOKEN, { useClass: ChatwootClient });
   container.register(WUZAPI_CLIENT_TOKEN, { useClass: WuzapiClient });
+
+  // Register repository manually to avoid DI issues with primitive constructor params
   container.register(MESSAGE_MAPPING_REPOSITORY_TOKEN, {
-    useClass: MessageMappingRepository,
+    useValue: new MessageMappingRepository(),
   });
 }
 

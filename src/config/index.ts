@@ -17,6 +17,10 @@ const envSchema = z.object({
   CHATWOOT_INBOX_IDENTIFIER: z.string().min(1),
 
   CONNECTOR_WEBHOOK_SECRET: z.string().optional(),
+  PUBLIC_URL: z.preprocess(
+    (val) => (val === "" ? undefined : val),
+    z.string().url().optional()
+  ),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

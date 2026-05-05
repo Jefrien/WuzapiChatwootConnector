@@ -6,6 +6,7 @@ import type {
   WuzapiSendVideoPayload,
   WuzapiSendStickerPayload,
   WuzapiSendLocationPayload,
+  WuzapiDownloadMediaPayload,
   WuzapiApiResponse,
   WuzapiSessionStatus,
   WuzapiWebhookConfig,
@@ -19,6 +20,7 @@ export interface IWuzapiClient {
   sendVideo(payload: WuzapiSendVideoPayload): Promise<WuzapiApiResponse<{ Id: string; Timestamp: string }>>;
   sendSticker(payload: WuzapiSendStickerPayload): Promise<WuzapiApiResponse<{ Id: string; Timestamp: string }>>;
   sendLocation(payload: WuzapiSendLocationPayload): Promise<WuzapiApiResponse<{ Id: string; Timestamp: string }>>;
+  downloadMedia(payload: WuzapiDownloadMediaPayload): Promise<WuzapiApiResponse<{ base64: string; mimeType: string }>>;
 
   getSessionStatus(): Promise<WuzapiApiResponse<WuzapiSessionStatus>>;
   getWebhook(): Promise<WuzapiApiResponse<WuzapiWebhookConfig>>;

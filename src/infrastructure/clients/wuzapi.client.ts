@@ -9,6 +9,7 @@ import type {
   WuzapiSendVideoPayload,
   WuzapiSendStickerPayload,
   WuzapiSendLocationPayload,
+  WuzapiDownloadMediaPayload,
   WuzapiApiResponse,
   WuzapiSessionStatus,
   WuzapiWebhookConfig,
@@ -104,6 +105,15 @@ export class WuzapiClient implements IWuzapiClient {
     payload: WuzapiSendLocationPayload
   ): Promise<WuzapiApiResponse<{ Id: string; Timestamp: string }>> {
     return this.request("/chat/send/location", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async downloadMedia(
+    payload: WuzapiDownloadMediaPayload
+  ): Promise<WuzapiApiResponse<{ base64: string; mimeType: string }>> {
+    return this.request("/chat/download", {
       method: "POST",
       body: JSON.stringify(payload),
     });

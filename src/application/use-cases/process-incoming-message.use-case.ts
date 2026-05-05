@@ -1,34 +1,34 @@
 import { inject, injectable } from "tsyringe";
-import type {
-  WuzapiMessageWebhook,
-  WuzapiMessageEvent,
-} from "../../domain/types/wuzapi";
-import type {
-  ChatwootCreateContactPayload,
-  ChatwootCreateMessagePayload,
-} from "../../domain/types/chatwoot";
+import type { WuzapiMessageEvent, WuzapiMediaMessage } from "../../domain/types/wuzapi";
+import type { ChatwootCreateContactPayload, ChatwootCreateMessagePayload } from "../../domain/types/chatwoot";
 import { CHATWOOT_CLIENT_TOKEN, type IChatwootClient } from "../ports/chatwoot-client.port";
-import {
-  MESSAGE_MAPPING_REPOSITORY_TOKEN,
-  type IMessageMappingRepository,
-} from "../ports/message-mapping.repository.port";
+import { WUZAPI_CLIENT_TOKEN, type IWuzapiClient } from "../ports/wuzapi-client.port";
+import { MESSAGE_MAPPING_REPOSITORY_TOKEN, type IMessageMappingRepository } from "../ports/message-mapping.repository.port";
 
 @injectable()
 export class ProcessIncomingMessageUseCase {
   constructor(
     @inject(CHATWOOT_CLIENT_TOKEN)
     private readonly chatwootClient: IChatwootClient,
+    @inject(WUZAPI_CLIENT_TOKEN)
+    private readonly wuzapiClient: IWuzapiClient,
     @inject(MESSAGE_MAPPING_REPOSITORY_TOKEN)
     private readonly mappingRepo: IMessageMappingRepository
   ) {}
 
-  async execute(payload: WuzapiMessageWebhook): Promise<void> {
+  async execute(payload: { event?: WuzapiMessageEvent; type?: string }): Promise<void> {
     const event = payload.event;
-    const chatId = this.extractChatId(event);
-    const phone = this.extractPhone(event);
-    const isFromMe = event.Info.IsFromMe;
+    if (!event) {
+      console.log("[Incoming] No event in payload");
+      return;
+    }
 
-    // Skip outgoing messages from WhatsApp (we handle those via Chatwoot webhook)
+    const info = event.Info;
+    const chatId = info.Chat;
+    const phone = this.extractPhone(info);
+    const isFromMe = info.IsFromMe;
+
+    // Skip outgoing messages from WhatsApp
     if (isFromMe) {
       console.log("[Incoming] Skipping outgoing message from WhatsApp");
       return;
@@ -42,20 +42,33 @@ export class ProcessIncomingMessageUseCase {
 
     if (!contact) {
       const contactPayload: ChatwootCreateContactPayload = {
-        inbox_id: 0, // Will be set by client implementation
-        name: event.Info.PushName || phone,
+        inbox_id: 0,
+        name: info.PushName || phone,
         phone_number: phone,
         identifier: chatId,
         custom_attributes: {
           whatsapp_chat_id: chatId,
+          whatsapp_jid: info.Sender,
         },
       };
       contact = await this.chatwootClient.createContact(contactPayload);
     } else {
-      // Ensure custom attributes are up to date
       await this.chatwootClient.updateContactAttributes(contact.id, {
         whatsapp_chat_id: chatId,
+        whatsapp_jid: info.Sender,
       });
+    }
+
+    // Try to update avatar on first contact
+    if (!contact.thumbnail) {
+      try {
+        const avatarUrl = await this.wuzapiClient.getUserAvatar(phone);
+        if (avatarUrl) {
+          await this.chatwootClient.updateContactAvatar(contact.id, avatarUrl);
+        }
+      } catch {
+        // Ignore avatar errors
+      }
     }
 
     // 2. Find or create conversation
@@ -80,18 +93,37 @@ export class ProcessIncomingMessageUseCase {
       private: false,
     };
 
-    if (payload.base64 && payload.mimeType) {
-      const filename = payload.fileName || `file_${Date.now()}`;
-      chatwootPayload.attachments = [
-        {
-          content: payload.base64,
-          filename,
-          encoding: "base64",
-        },
-      ];
-    } else if (messageContent.mediaUrl) {
-      // If we have an S3 URL, include it in the text
-      chatwootPayload.content = `${messageContent.text}\n${messageContent.mediaUrl}`.trim();
+    const media = messageContent.media;
+    if (media) {
+      try {
+        const downloaded = await this.wuzapiClient.downloadMedia({
+          Url: media.URL,
+          DirectPath: media.directPath,
+          MediaKey: media.mediaKey,
+          Mimetype: media.mimetype,
+          FileEncSHA256: media.fileEncSHA256,
+          FileSHA256: media.fileSHA256,
+          FileLength: media.fileLength,
+        });
+
+        if (downloaded.success && downloaded.data?.base64) {
+          const ext = this.getExtensionFromMime(media.mimetype || "");
+          const filename = `media_${Date.now()}${ext}`;
+          chatwootPayload.attachments = [
+            {
+              content: downloaded.data.base64,
+              filename,
+              encoding: "base64",
+            },
+          ];
+        }
+      } catch (err) {
+        console.error("[Incoming] Failed to download media:", err);
+        // Include the URL in the text as fallback
+        if (media.URL) {
+          chatwootPayload.content = `${messageContent.text}\n${media.URL}`.trim();
+        }
+      }
     }
 
     // 5. Send message to Chatwoot
@@ -102,7 +134,7 @@ export class ProcessIncomingMessageUseCase {
 
     // 6. Save mapping
     await this.mappingRepo.save({
-      wuzapiMessageId: event.Info.ID,
+      wuzapiMessageId: info.ID,
       chatwootMessageId: chatwootMessage.id,
       chatwootConversationId: conversation.id,
       wuzapiPhone: phone,
@@ -111,24 +143,23 @@ export class ProcessIncomingMessageUseCase {
     });
 
     console.log(
-      `[Incoming] Synced WA message ${event.Info.ID} -> Chatwoot message ${chatwootMessage.id}`
+      `[Incoming] Synced WA message ${info.ID} (${phone}) -> Chatwoot message ${chatwootMessage.id}`
     );
   }
 
-  private extractChatId(event: WuzapiMessageEvent): string {
-    if (event.Info.IsGroup) {
-      return `${event.Info.Chat.User}@${event.Info.Chat.Server}`;
+  private extractPhone(info: WuzapiMessageEvent["Info"]): string {
+    // Prefer SenderAlt which has the real phone number
+    if (info.SenderAlt) {
+      return info.SenderAlt.replace(/@s\.whatsapp\.net|@lid|@g\.us/g, "");
     }
-    return `${event.Info.Sender.User}@${event.Info.Sender.Server}`;
+    // Fallback to Sender
+    return info.Sender.replace(/@s\.whatsapp\.net|@lid|@g\.us/g, "");
   }
 
-  private extractPhone(event: WuzapiMessageEvent): string {
-    return event.Info.Sender.User;
-  }
-
-  private buildMessageContent(event: WuzapiMessageEvent): { text: string; mediaUrl?: string } {
+  private buildMessageContent(event: WuzapiMessageEvent): { text: string; media?: WuzapiMediaMessage } {
     const msg = event.Message;
     let text = "";
+    let media: WuzapiMediaMessage | undefined;
 
     // Protocol message (delete)
     if (msg.protocolMessage?.type === 0) {
@@ -147,29 +178,37 @@ export class ProcessIncomingMessageUseCase {
       text = msg.extendedTextMessage.text;
     }
 
-    // Media with captions
-    if (msg.imageMessage?.caption) {
-      text = msg.imageMessage.caption;
-    } else if (msg.videoMessage?.caption) {
-      text = msg.videoMessage.caption;
-    } else if (msg.documentMessage?.caption) {
-      text = msg.documentMessage.caption;
+    // Media detection
+    if (msg.imageMessage) {
+      media = msg.imageMessage;
+      text = msg.imageMessage.caption || ":image:";
+    } else if (msg.videoMessage) {
+      media = msg.videoMessage;
+      text = msg.videoMessage.caption || ":video:";
+    } else if (msg.audioMessage) {
+      media = msg.audioMessage;
+      text = msg.audioMessage.PTT ? ":voice:" : ":audio:";
+    } else if (msg.documentMessage) {
+      media = msg.documentMessage;
+      text = msg.documentMessage.caption || ":document:";
+    } else if (msg.stickerMessage) {
+      media = msg.stickerMessage;
+      text = ":sticker:";
+    } else if (msg.contactMessage) {
+      text = `Contact: ${msg.contactMessage.displayName || ""}`;
+    } else if (msg.locationMessage) {
+      const loc = msg.locationMessage;
+      text = `📍 Location: ${loc.name || ""} ${loc.address || ""} (${loc.degreesLatitude}, ${loc.degreesLongitude})`;
     }
 
-    // Media placeholders if no caption
-    if (!text) {
-      if (msg.imageMessage) text = ":image:";
-      else if (msg.videoMessage) text = ":video:";
-      else if (msg.audioMessage) text = ":audio:";
-      else if (msg.documentMessage) text = ":document:";
-      else if (msg.stickerMessage) text = ":sticker:";
-      else if (msg.contactMessage) text = `Contact: ${msg.contactMessage.displayName || ""}`;
-      else if (msg.locationMessage) {
-        const loc = msg.locationMessage;
-        text = `📍 Location: ${loc.name || ""} ${loc.address || ""} (${loc.degreesLatitude}, ${loc.degreesLongitude})`;
-      }
-    }
+    return { text, media };
+  }
 
-    return { text };
+  private getExtensionFromMime(mime: string): string {
+    if (mime.includes("image")) return ".jpg";
+    if (mime.includes("video")) return ".mp4";
+    if (mime.includes("audio")) return ".ogg";
+    if (mime.includes("webp")) return ".webp";
+    return ".bin";
   }
 }

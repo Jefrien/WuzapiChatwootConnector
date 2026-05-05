@@ -2,6 +2,8 @@
 
 Esta guía te lleva de la mano para configurar el conector entre **Wuzapi** (WhatsApp) y **Chatwoot** (CRM/Conversaciones).
 
+> **Nota técnica**: Este conector recibe webhooks de Wuzapi en formato `type: "Message"` con `event.Info.Chat`, `event.Info.Sender`, `event.Message.audioMessage/imageMessage`, etc. La media (imágenes, audio, video) se descarga **automáticamente** desde los servidores de WhatsApp usando el endpoint `/chat/download` de Wuzapi antes de enviarla a Chatwoot.
+
 ---
 
 ## Paso 1: Crear un Inbox en Chatwoot
