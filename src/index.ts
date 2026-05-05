@@ -21,7 +21,7 @@ async function main() {
       status: "ok",
       timestamp: new Date().toISOString(),
       service: "chatwoot-wuzapi-connector",
-    })
+    }),
   );
 
   // Mount webhook controllers
@@ -46,8 +46,11 @@ async function main() {
     const publicUrl = process.env.PUBLIC_URL;
     if (publicUrl) {
       const setupUseCase = container.resolve(SetupWebhookUseCase);
-      const success = await setupUseCase.execute(`${publicUrl}/webhooks/wuzapi`);
+      const success = await setupUseCase.execute(
+        `${publicUrl}/webhooks/wuzapi`,
+      );
       if (success) {
+        console.log(success);
         console.log("✅ Wuzapi webhook auto-configured");
       } else {
         console.warn("⚠️ Failed to auto-configure Wuzapi webhook");
