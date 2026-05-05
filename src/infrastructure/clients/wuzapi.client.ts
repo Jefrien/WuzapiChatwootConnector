@@ -110,10 +110,46 @@ export class WuzapiClient implements IWuzapiClient {
     });
   }
 
-  async downloadMedia(
+  async downloadImage(
     payload: WuzapiDownloadMediaPayload
   ): Promise<WuzapiApiResponse<{ base64: string; mimeType: string }>> {
-    return this.request("/chat/download", {
+    return this.request("/chat/downloadimage", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async downloadVideo(
+    payload: WuzapiDownloadMediaPayload
+  ): Promise<WuzapiApiResponse<{ base64: string; mimeType: string }>> {
+    return this.request("/chat/downloadvideo", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async downloadAudio(
+    payload: WuzapiDownloadMediaPayload
+  ): Promise<WuzapiApiResponse<{ base64: string; mimeType: string }>> {
+    return this.request("/chat/downloadaudio", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async downloadDocument(
+    payload: WuzapiDownloadMediaPayload
+  ): Promise<WuzapiApiResponse<{ base64: string; mimeType: string }>> {
+    return this.request("/chat/downloaddocument", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async downloadSticker(
+    payload: WuzapiDownloadMediaPayload
+  ): Promise<WuzapiApiResponse<{ base64: string; mimeType: string }>> {
+    return this.request("/chat/downloadsticker", {
       method: "POST",
       body: JSON.stringify(payload),
     });

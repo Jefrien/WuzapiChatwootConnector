@@ -102,9 +102,10 @@ export class ProcessIncomingMessageUseCase {
     };
 
     const media = messageContent.media;
-    if (media) {
+    const mediaType = messageContent.mediaType;
+    if (media && mediaType) {
       try {
-        const downloaded = await this.wuzapiClient.downloadMedia({
+        const downloadPayload = {
           Url: media.URL,
           DirectPath: media.directPath,
           MediaKey: media.mediaKey,
@@ -112,7 +113,28 @@ export class ProcessIncomingMessageUseCase {
           FileEncSHA256: media.fileEncSHA256,
           FileSHA256: media.fileSHA256,
           FileLength: media.fileLength,
-        });
+        };
+
+        let downloaded;
+        switch (mediaType) {
+          case "image":
+            downloaded = await this.wuzapiClient.downloadImage(downloadPayload);
+            break;
+          case "video":
+            downloaded = await this.wuzapiClient.downloadVideo(downloadPayload);
+            break;
+          case "audio":
+            downloaded = await this.wuzapiClient.downloadAudio(downloadPayload);
+            break;
+          case "document":
+            downloaded = await this.wuzapiClient.downloadDocument(downloadPayload);
+            break;
+          case "sticker":
+            downloaded = await this.wuzapiClient.downloadSticker(downloadPayload);
+            break;
+          default:
+            throw new Error(`Unknown media type: ${mediaType}`);
+        }
 
         if (downloaded.success && downloaded.data?.base64) {
           const ext = this.getExtensionFromMime(media.mimetype || "");
@@ -126,7 +148,7 @@ export class ProcessIncomingMessageUseCase {
           ];
         }
       } catch (err) {
-        console.error("[Incoming] Failed to download media:", err);
+        console.error(`[Incoming] Failed to download ${mediaType} media:`, err);
         // Include the URL in the text as fallback
         if (media.URL) {
           chatwootPayload.content = `${messageContent.text}\n${media.URL}`.trim();
@@ -175,7 +197,7 @@ export class ProcessIncomingMessageUseCase {
     return { phone, isRealNumber };
   }
 
-  private buildMessageContent(event: WuzapiMessageEvent): { text: string; media?: WuzapiMediaMessage } {
+  private buildMessageContent(event: WuzapiMessageEvent): { text: string; media?: WuzapiMediaMessage; mediaType?: string } {
     const msg = event.Message;
     let text = "";
     let media: WuzapiMediaMessage | undefined;
@@ -197,21 +219,28 @@ export class ProcessIncomingMessageUseCase {
       text = msg.extendedTextMessage.text;
     }
 
+    let mediaType: string | undefined;
+
     // Media detection
     if (msg.imageMessage) {
       media = msg.imageMessage;
+      mediaType = "image";
       text = msg.imageMessage.caption || ":image:";
     } else if (msg.videoMessage) {
       media = msg.videoMessage;
+      mediaType = "video";
       text = msg.videoMessage.caption || ":video:";
     } else if (msg.audioMessage) {
       media = msg.audioMessage;
+      mediaType = "audio";
       text = msg.audioMessage.PTT ? ":voice:" : ":audio:";
     } else if (msg.documentMessage) {
       media = msg.documentMessage;
+      mediaType = "document";
       text = msg.documentMessage.caption || ":document:";
     } else if (msg.stickerMessage) {
       media = msg.stickerMessage;
+      mediaType = "sticker";
       text = ":sticker:";
     } else if (msg.contactMessage) {
       text = `Contact: ${msg.contactMessage.displayName || ""}`;
@@ -220,7 +249,7 @@ export class ProcessIncomingMessageUseCase {
       text = `📍 Location: ${loc.name || ""} ${loc.address || ""} (${loc.degreesLatitude}, ${loc.degreesLongitude})`;
     }
 
-    return { text, media };
+    return { text, media, mediaType };
   }
 
   private getExtensionFromMime(mime: string): string {

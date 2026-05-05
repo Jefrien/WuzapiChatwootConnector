@@ -20,7 +20,7 @@ export class ProcessOutgoingMessageUseCase {
 
   async execute(payload: ChatwootMessagePayload): Promise<void> {
     // Skip incoming messages (we handle those via Wuzapi webhook)
-    if (payload.message_type === "incoming") {
+    if (payload.message_type === "incoming" || payload.message_type === 0) {
       console.log("[Outgoing] Skipping incoming message from Chatwoot");
       return;
     }
@@ -170,10 +170,11 @@ export class ProcessOutgoingMessageUseCase {
   }
 
   private async extractPhone(payload: ChatwootMessagePayload): Promise<string | null> {
-    // 1. Try conversation source_id (most reliable - it's the customer's phone)
-    if (payload.conversation?.contact_inbox?.source_id) {
-      const phone = payload.conversation.contact_inbox.source_id.replace(/\+/g, "").replace(/\D/g, "");
-      console.log(`[Outgoing] Phone from conversation.source_id: ${phone}`);
+    // 1. Try conversation.meta.sender.phone_number (customer phone for API channel outgoing)
+    const metaPhone = payload.conversation?.meta?.sender?.phone_number;
+    if (metaPhone) {
+      const phone = metaPhone.replace(/\+/g, "").replace(/\D/g, "");
+      console.log(`[Outgoing] Phone from conversation.meta.sender.phone_number: ${phone}`);
       return phone;
     }
 
@@ -184,7 +185,15 @@ export class ProcessOutgoingMessageUseCase {
       return phone;
     }
 
-    // 3. Try to find mapping by conversation
+    // 3. Try conversation source_id if it looks like a phone number (not UUID)
+    const sourceId = payload.conversation?.contact_inbox?.source_id;
+    if (sourceId && !sourceId.includes("-") && sourceId.replace(/\D/g, "").length >= 7) {
+      const phone = sourceId.replace(/\+/g, "").replace(/\D/g, "");
+      console.log(`[Outgoing] Phone from conversation.source_id: ${phone}`);
+      return phone;
+    }
+
+    // 4. Try to find mapping by conversation
     if (payload.conversation?.id) {
       const latestMapping = await this.mappingRepo.findLatestByConversation(
         payload.conversation.id
@@ -195,7 +204,7 @@ export class ProcessOutgoingMessageUseCase {
       }
     }
 
-    // 4. Try to find mapping by message id
+    // 5. Try to find mapping by message id
     if (payload.id) {
       const mapping = await this.mappingRepo.findByChatwootId(payload.id);
       if (mapping) {
@@ -206,7 +215,8 @@ export class ProcessOutgoingMessageUseCase {
 
     console.error("[Outgoing] Could not extract phone from payload:", JSON.stringify({
       conversation_id: payload.conversation?.id,
-      contact_inbox: payload.conversation?.contact_inbox,
+      contact_inbox_source_id: payload.conversation?.contact_inbox?.source_id,
+      meta_sender_phone: payload.conversation?.meta?.sender?.phone_number,
       sender_phone: payload.sender?.phone_number,
       message_id: payload.id,
     }));

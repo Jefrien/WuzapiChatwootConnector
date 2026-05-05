@@ -27,19 +27,22 @@ chatwootWebhookController.post("/chatwoot", async (c) => {
         return c.json({ success: true });
       }
 
+      console.log("[Chatwoot Webhook] Processing outgoing message...");
       const useCase = container.resolve(ProcessOutgoingMessageUseCase);
       await useCase.execute(body as any);
+      console.log("[Chatwoot Webhook] Outgoing message processed successfully");
       return c.json({ success: true });
     }
 
     if (event === "message_updated") {
-      // Handle retries or status updates if needed
-      const isRetry =
-        body.content_attributes?.external_error === null ||
-        Boolean(body.content_attributes?.external_error);
+      // Only retry when external_error is null (Chatwoot cleared it for manual retry)
+      const isRetry = body.content_attributes?.external_error === null;
       if (isRetry) {
+        console.log("[Chatwoot Webhook] Retrying outgoing message (manual retry from Chatwoot)...");
         const useCase = container.resolve(ProcessOutgoingMessageUseCase);
         await useCase.execute(body as any);
+      } else {
+        console.log("[Chatwoot Webhook] Ignoring message_updated, external_error:", body.content_attributes?.external_error);
       }
       return c.json({ success: true });
     }

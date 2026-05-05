@@ -40,6 +40,18 @@ export interface ChatwootConversation {
   contact_inbox?: {
     source_id: string;
   };
+  meta?: {
+    sender?: {
+      phone_number?: string;
+      id?: number;
+      name?: string;
+      thumbnail?: string;
+    };
+    assignee?: {
+      id?: number;
+      name?: string;
+    };
+  };
 }
 
 export interface ChatwootContact {
@@ -65,7 +77,7 @@ export interface ChatwootSender {
 
 export interface ChatwootMessagePayload {
   event: ChatwootEventType;
-  message_type: ChatwootMessageType;
+  message_type: ChatwootMessageType | number;
   id: number;
   content: string;
   content_type: ChatwootMessageContentType;
