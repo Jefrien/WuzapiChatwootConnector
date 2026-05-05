@@ -30,7 +30,7 @@ export class WuzapiClient implements IWuzapiClient {
 
   private async request<T>(
     path: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     const response = await fetch(url, {
@@ -51,7 +51,7 @@ export class WuzapiClient implements IWuzapiClient {
   }
 
   async sendText(
-    payload: WuzapiSendTextPayload
+    payload: WuzapiSendTextPayload,
   ): Promise<WuzapiApiResponse<{ Id: string; Timestamp: string }>> {
     return this.request("/chat/send/text", {
       method: "POST",
@@ -60,7 +60,7 @@ export class WuzapiClient implements IWuzapiClient {
   }
 
   async sendImage(
-    payload: WuzapiSendImagePayload
+    payload: WuzapiSendImagePayload,
   ): Promise<WuzapiApiResponse<{ Id: string; Timestamp: string }>> {
     return this.request("/chat/send/image", {
       method: "POST",
@@ -69,7 +69,7 @@ export class WuzapiClient implements IWuzapiClient {
   }
 
   async sendAudio(
-    payload: WuzapiSendAudioPayload
+    payload: WuzapiSendAudioPayload,
   ): Promise<WuzapiApiResponse<{ Id: string; Timestamp: string }>> {
     return this.request("/chat/send/audio", {
       method: "POST",
@@ -78,7 +78,7 @@ export class WuzapiClient implements IWuzapiClient {
   }
 
   async sendDocument(
-    payload: WuzapiSendDocumentPayload
+    payload: WuzapiSendDocumentPayload,
   ): Promise<WuzapiApiResponse<{ Id: string; Timestamp: string }>> {
     return this.request("/chat/send/document", {
       method: "POST",
@@ -87,7 +87,7 @@ export class WuzapiClient implements IWuzapiClient {
   }
 
   async sendVideo(
-    payload: WuzapiSendVideoPayload
+    payload: WuzapiSendVideoPayload,
   ): Promise<WuzapiApiResponse<{ Id: string; Timestamp: string }>> {
     return this.request("/chat/send/video", {
       method: "POST",
@@ -96,7 +96,7 @@ export class WuzapiClient implements IWuzapiClient {
   }
 
   async sendSticker(
-    payload: WuzapiSendStickerPayload
+    payload: WuzapiSendStickerPayload,
   ): Promise<WuzapiApiResponse<{ Id: string; Timestamp: string }>> {
     return this.request("/chat/send/sticker", {
       method: "POST",
@@ -105,7 +105,7 @@ export class WuzapiClient implements IWuzapiClient {
   }
 
   async sendLocation(
-    payload: WuzapiSendLocationPayload
+    payload: WuzapiSendLocationPayload,
   ): Promise<WuzapiApiResponse<{ Id: string; Timestamp: string }>> {
     return this.request("/chat/send/location", {
       method: "POST",
@@ -114,7 +114,7 @@ export class WuzapiClient implements IWuzapiClient {
   }
 
   async sendList(
-    payload: WuzapiSendListPayload
+    payload: WuzapiSendListPayload,
   ): Promise<WuzapiApiResponse<{ Id: string; Timestamp: string }>> {
     return this.request("/chat/send/list", {
       method: "POST",
@@ -123,7 +123,7 @@ export class WuzapiClient implements IWuzapiClient {
   }
 
   async sendButtons(
-    payload: WuzapiSendButtonsPayload
+    payload: WuzapiSendButtonsPayload,
   ): Promise<WuzapiApiResponse<{ Id: string; Timestamp: string }>> {
     return this.request("/chat/send/button", {
       method: "POST",
@@ -132,7 +132,7 @@ export class WuzapiClient implements IWuzapiClient {
   }
 
   async downloadImage(
-    payload: WuzapiDownloadMediaPayload
+    payload: WuzapiDownloadMediaPayload,
   ): Promise<WuzapiApiResponse<WuzapiDownloadMediaResponse>> {
     return this.request("/chat/downloadimage", {
       method: "POST",
@@ -141,7 +141,7 @@ export class WuzapiClient implements IWuzapiClient {
   }
 
   async downloadVideo(
-    payload: WuzapiDownloadMediaPayload
+    payload: WuzapiDownloadMediaPayload,
   ): Promise<WuzapiApiResponse<WuzapiDownloadMediaResponse>> {
     return this.request("/chat/downloadvideo", {
       method: "POST",
@@ -150,7 +150,7 @@ export class WuzapiClient implements IWuzapiClient {
   }
 
   async downloadAudio(
-    payload: WuzapiDownloadMediaPayload
+    payload: WuzapiDownloadMediaPayload,
   ): Promise<WuzapiApiResponse<WuzapiDownloadMediaResponse>> {
     return this.request("/chat/downloadaudio", {
       method: "POST",
@@ -159,7 +159,7 @@ export class WuzapiClient implements IWuzapiClient {
   }
 
   async downloadDocument(
-    payload: WuzapiDownloadMediaPayload
+    payload: WuzapiDownloadMediaPayload,
   ): Promise<WuzapiApiResponse<WuzapiDownloadMediaResponse>> {
     return this.request("/chat/downloaddocument", {
       method: "POST",
@@ -168,7 +168,7 @@ export class WuzapiClient implements IWuzapiClient {
   }
 
   async downloadSticker(
-    payload: WuzapiDownloadMediaPayload
+    payload: WuzapiDownloadMediaPayload,
   ): Promise<WuzapiApiResponse<WuzapiDownloadMediaResponse>> {
     return this.request("/chat/downloadsticker", {
       method: "POST",
@@ -186,8 +186,9 @@ export class WuzapiClient implements IWuzapiClient {
 
   async setWebhook(
     url: string,
-    events: string[]
+    events: string[],
   ): Promise<WuzapiApiResponse<WuzapiWebhookConfig>> {
+    console.log("Trying to set webhook", url, events);
     return this.request("/webhook", {
       method: "POST",
       body: JSON.stringify({ webhook: url, events }),
