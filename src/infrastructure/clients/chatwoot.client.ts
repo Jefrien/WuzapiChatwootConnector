@@ -1,6 +1,6 @@
 import { injectable } from "tsyringe";
 import { env } from "../../config";
-import type { IChatwootClient } from "../../application/ports/chatwoot-client.port";
+import type { IChatwootClient, CreateContactResult } from "../../application/ports/chatwoot-client.port";
 import type {
   ChatwootContact,
   ChatwootConversation,
@@ -110,13 +110,13 @@ export class ChatwootClient implements IChatwootClient {
     }
   }
 
-  async createContact(payload: ChatwootCreateContactPayload): Promise<ChatwootContact> {
+  async createContact(payload: ChatwootCreateContactPayload): Promise<CreateContactResult> {
     // Use public inbox API to create contact already linked to the inbox
-    const result = await this.publicRequest<{
-      payload: {
-        contact: ChatwootContact;
-        contact_inbox: { source_id: string };
-      };
+    // Public API returns directly: { source_id, pubsub_token, contact }
+    const publicResult = await this.publicRequest<{
+      source_id: string;
+      pubsub_token: string;
+      contact: ChatwootContact;
     }>("/contacts", {
       method: "POST",
       body: JSON.stringify({
@@ -129,12 +129,15 @@ export class ChatwootClient implements IChatwootClient {
       }),
     });
 
-    // Enrich with account API to get full contact data
+    // Enrich with account API to get full contact data with contact_inboxes
     const fullContact = await this.accountRequest<{ payload: ChatwootContact }>(
-      `/accounts/${this.accountId}/contacts/${result.payload.contact.id}`
+      `/accounts/${this.accountId}/contacts/${publicResult.contact.id}`
     );
 
-    return fullContact.payload;
+    return {
+      contact: fullContact.payload,
+      sourceId: publicResult.source_id,
+    };
   }
 
   async updateContactAttributes(
@@ -175,13 +178,15 @@ export class ChatwootClient implements IChatwootClient {
   }
 
   async createConversation(contactSourceId: string): Promise<ChatwootConversation> {
-    const result = await this.publicRequest<{
-      payload: ChatwootConversation;
-    }>(`/contacts/${contactSourceId}/conversations`, {
-      method: "POST",
-      body: JSON.stringify({}),
-    });
-    return result.payload;
+    // Public API returns directly: { id, ... }
+    const result = await this.publicRequest<ChatwootConversation>(
+      `/contacts/${contactSourceId}/conversations`,
+      {
+        method: "POST",
+        body: JSON.stringify({}),
+      }
+    );
+    return result;
   }
 
   async createMessage(

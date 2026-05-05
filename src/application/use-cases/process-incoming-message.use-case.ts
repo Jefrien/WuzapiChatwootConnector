@@ -40,6 +40,8 @@ export class ProcessIncomingMessageUseCase {
       contact = await this.chatwootClient.findContactByPhone(phone);
     }
 
+    let contactSourceId: string;
+
     if (!contact) {
       const contactPayload: ChatwootCreateContactPayload = {
         inbox_id: 0,
@@ -51,16 +53,11 @@ export class ProcessIncomingMessageUseCase {
           whatsapp_jid: info.Sender,
         },
       };
-      contact = await this.chatwootClient.createContact(contactPayload);
-    } else {
-      await this.chatwootClient.updateContactAttributes(contact.id, {
-        whatsapp_chat_id: chatId,
-        whatsapp_jid: info.Sender,
-      });
-    }
+      const createResult = await this.chatwootClient.createContact(contactPayload);
+      contact = createResult.contact;
+      contactSourceId = createResult.sourceId;
 
-    // Try to update avatar on first contact
-    if (!contact.thumbnail) {
+      // Try to update avatar on first contact
       try {
         const avatarUrl = await this.wuzapiClient.getUserAvatar(phone);
         if (avatarUrl) {
@@ -69,18 +66,24 @@ export class ProcessIncomingMessageUseCase {
       } catch {
         // Ignore avatar errors
       }
+    } else {
+      contactSourceId = contact.contact_inboxes?.find(
+        (ci) => ci.inbox?.id
+      )?.source_id || "";
+
+      await this.chatwootClient.updateContactAttributes(contact.id, {
+        whatsapp_chat_id: chatId,
+        whatsapp_jid: info.Sender,
+      });
     }
 
     // 2. Find or create conversation
     let conversation = await this.chatwootClient.findConversationByContactId(contact.id);
     if (!conversation) {
-      const sourceId = contact.contact_inboxes?.find(
-        (ci) => ci.inbox?.id
-      )?.source_id;
-      if (!sourceId) {
+      if (!contactSourceId) {
         throw new Error(`No source_id found for contact ${contact.id}`);
       }
-      conversation = await this.chatwootClient.createConversation(sourceId);
+      conversation = await this.chatwootClient.createConversation(contactSourceId);
     }
 
     // 3. Build message content

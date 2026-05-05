@@ -34,9 +34,10 @@ async function main() {
     port,
   });
 
-  console.log(`🚀 Connector running on http://localhost:${port}`);
-  console.log(`📡 Wuzapi webhook endpoint: http://localhost:${port}/webhooks/wuzapi`);
-  console.log(`💬 Chatwoot webhook endpoint: http://localhost:${port}/webhooks/chatwoot`);
+  const baseUrl = env.PUBLIC_URL || `http://localhost:${port}`;
+  console.log(`🚀 Connector running on ${baseUrl}`);
+  console.log(`📡 Wuzapi webhook endpoint: ${baseUrl}/webhooks/wuzapi`);
+  console.log(`💬 Chatwoot webhook endpoint: ${baseUrl}/webhooks/chatwoot`);
 
   // Auto-setup Wuzapi webhook if configured
   try {

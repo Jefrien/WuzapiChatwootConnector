@@ -5,10 +5,15 @@ import type {
   ChatwootCreateMessagePayload,
 } from "../../domain/types/chatwoot";
 
+export interface CreateContactResult {
+  contact: ChatwootContact;
+  sourceId: string;
+}
+
 export interface IChatwootClient {
   findContactByPhone(phone: string): Promise<ChatwootContact | null>;
   findContactByIdentifier(identifier: string): Promise<ChatwootContact | null>;
-  createContact(payload: ChatwootCreateContactPayload): Promise<ChatwootContact>;
+  createContact(payload: ChatwootCreateContactPayload): Promise<CreateContactResult>;
   updateContactAttributes(
     contactId: number,
     attributes: Record<string, string>
