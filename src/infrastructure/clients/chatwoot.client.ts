@@ -115,10 +115,17 @@ export class ChatwootClient implements IChatwootClient {
   async createContact(payload: ChatwootCreateContactPayload): Promise<CreateContactResult> {
     try {
       // Try public inbox API first (creates contact already linked to inbox)
+      // Public API returns directly: { source_id, pubsub_token, id, name, email, phone_number, ... }
       const publicResult = await this.publicRequest<{
         source_id: string;
         pubsub_token: string;
-        contact: ChatwootContact;
+        id: number;
+        name: string;
+        email: string | null;
+        phone_number: string | null;
+        thumbnail?: string;
+        custom_attributes?: Record<string, string>;
+        contact_inboxes?: Array<{ source_id: string; inbox: { id: number } }>;
       }>("/contacts", {
         method: "POST",
         body: JSON.stringify({
@@ -131,10 +138,33 @@ export class ChatwootClient implements IChatwootClient {
         }),
       });
 
-      return {
-        contact: publicResult.contact,
-        sourceId: publicResult.source_id,
+      // Build contact from public result + enrich with account API
+      const baseContact: ChatwootContact = {
+        id: publicResult.id,
+        name: publicResult.name,
+        email: publicResult.email || undefined,
+        phone_number: publicResult.phone_number || undefined,
+        thumbnail: publicResult.thumbnail,
+        custom_attributes: publicResult.custom_attributes,
+        contact_inboxes: publicResult.contact_inboxes,
       };
+
+      // Enrich with account API to get full contact data
+      try {
+        const fullContact = await this.accountRequest<{ payload: ChatwootContact }>(
+          `/accounts/${this.accountId}/contacts/${publicResult.id}`
+        );
+        return {
+          contact: fullContact.payload,
+          sourceId: publicResult.source_id,
+        };
+      } catch {
+        // If account API fails, use base contact
+        return {
+          contact: baseContact,
+          sourceId: publicResult.source_id,
+        };
+      }
     } catch (publicError) {
       console.warn("[Chatwoot] Public API failed, falling back to Account API:", publicError);
 

@@ -25,7 +25,7 @@ export class ProcessIncomingMessageUseCase {
 
     const info = event.Info;
     const chatId = info.Chat;
-    const phone = this.extractPhone(info);
+    const { phone, isRealNumber } = this.extractPhone(info);
     const isFromMe = info.IsFromMe;
 
     // Skip outgoing messages from WhatsApp
@@ -46,13 +46,18 @@ export class ProcessIncomingMessageUseCase {
       const contactPayload: ChatwootCreateContactPayload = {
         inbox_id: 0,
         name: info.PushName || phone,
-        phone_number: phone,
         identifier: chatId,
         custom_attributes: {
           whatsapp_chat_id: chatId,
           whatsapp_jid: info.Sender,
         },
       };
+
+      // Only send phone_number if it's a real number (not LID)
+      if (isRealNumber) {
+        contactPayload.phone_number = phone;
+      }
+
       const createResult = await this.chatwootClient.createContact(contactPayload);
       contact = createResult.contact;
       contactSourceId = createResult.sourceId;
@@ -150,13 +155,24 @@ export class ProcessIncomingMessageUseCase {
     );
   }
 
-  private extractPhone(info: WuzapiMessageEvent["Info"]): string {
-    // Prefer SenderAlt which has the real phone number
-    if (info.SenderAlt) {
-      return info.SenderAlt.replace(/@s\.whatsapp\.net|@lid|@g\.us/g, "");
-    }
-    // Fallback to Sender
-    return info.Sender.replace(/@s\.whatsapp\.net|@lid|@g\.us/g, "");
+  private extractPhone(info: WuzapiMessageEvent["Info"]): { phone: string; isRealNumber: boolean } {
+    const raw = info.SenderAlt || info.Sender;
+
+    // Clean JID: remove :N suffix and domain
+    const clean = raw
+      .replace(/:\d+/, "")              // quitar :4, :53, etc.
+      .replace(/@s\.whatsapp\.net/, "")
+      .replace(/@lid/, "")
+      .replace(/@g\.us/, "")
+      .replace(/@broadcast/, "");
+
+    // Check if it looks like a real phone number (all digits, reasonable length)
+    const isRealNumber = /^\d{7,15}$/.test(clean);
+
+    // Format as E164: add + if missing and it's a real number
+    const phone = isRealNumber && !clean.startsWith("+") ? `+${clean}` : clean;
+
+    return { phone, isRealNumber };
   }
 
   private buildMessageContent(event: WuzapiMessageEvent): { text: string; media?: WuzapiMediaMessage } {
