@@ -105,6 +105,13 @@ export class MessageMappingRepository implements IMessageMappingRepository {
     };
   }
 
+  async updateWuzapiMessageId(chatwootMessageId: number, wuzapiMessageId: string): Promise<void> {
+    const stmt = this.db.prepare(
+      "UPDATE message_mappings SET wuzapi_message_id = ? WHERE chatwoot_message_id = ?"
+    );
+    stmt.run(wuzapiMessageId, chatwootMessageId);
+  }
+
   async findByWuzapiId(wuzapiMessageId: string): Promise<MessageMapping | null> {
     const row = this.db
       .prepare("SELECT * FROM message_mappings WHERE wuzapi_message_id = ?")

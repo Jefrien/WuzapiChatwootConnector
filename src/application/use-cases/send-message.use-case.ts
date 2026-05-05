@@ -110,6 +110,15 @@ export class SendMessageUseCase {
       `[SendMessage] Chatwoot message created: ${chatwootMessage.id}`,
     );
 
+    // Save PENDING mapping immediately to prevent webhook from re-sending
+    await this.mappingRepo.save({
+      wuzapiMessageId: "PENDING",
+      chatwootMessageId: chatwootMessage.id,
+      chatwootConversationId: conversationId,
+      wuzapiPhone: phone,
+      direction: "outbound",
+    });
+
     // 2. Send to Wuzapi based on type
     let wuzapiResult: { data?: { Id: string } } | undefined;
 
@@ -235,15 +244,12 @@ export class SendMessageUseCase {
       `[SendMessage] Wuzapi message sent: ${wuzapiMessageId || "unknown"}`,
     );
 
-    // 3. Save mapping
+    // 3. Update mapping with real wuzapiMessageId
     if (wuzapiMessageId) {
-      await this.mappingRepo.save({
+      await this.mappingRepo.updateWuzapiMessageId(
+        chatwootMessage.id,
         wuzapiMessageId,
-        chatwootMessageId: chatwootMessage.id,
-        chatwootConversationId: conversationId,
-        wuzapiPhone: phone,
-        direction: "outbound",
-      });
+      );
     }
 
     return {

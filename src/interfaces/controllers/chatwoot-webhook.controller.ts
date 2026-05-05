@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { container } from "tsyringe";
 import { createHmac } from "crypto";
 import { ProcessOutgoingMessageUseCase } from "../../application/use-cases/process-outgoing-message.use-case";
+import { MESSAGE_MAPPING_REPOSITORY_TOKEN } from "../../application/ports/message-mapping.repository.port";
 import { env } from "../../config";
 
 export const chatwootWebhookController = new Hono();
@@ -44,6 +45,14 @@ chatwootWebhookController.post("/chatwoot", async (c) => {
       // Skip incoming messages
       if (body.message_type === "incoming" || body.message_type === 0) {
         console.log("[Chatwoot Webhook] Skipping incoming message");
+        return c.json({ success: true });
+      }
+
+      // Check if this message was already sent by our /send-message API
+      const mappingRepo = container.resolve(MESSAGE_MAPPING_REPOSITORY_TOKEN) as any;
+      const existingMapping = await mappingRepo.findByChatwootId(body.id);
+      if (existingMapping) {
+        console.log(`[Chatwoot Webhook] Skipping message ${body.id} - already sent by API`);
         return c.json({ success: true });
       }
 

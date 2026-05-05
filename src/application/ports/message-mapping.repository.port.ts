@@ -12,6 +12,7 @@ export interface MessageMapping {
 
 export interface IMessageMappingRepository {
   save(mapping: Omit<MessageMapping, "id" | "createdAt">): Promise<MessageMapping>;
+  updateWuzapiMessageId(chatwootMessageId: number, wuzapiMessageId: string): Promise<void>;
   findByWuzapiId(wuzapiMessageId: string): Promise<MessageMapping | null>;
   findByChatwootId(chatwootMessageId: number): Promise<MessageMapping | null>;
   findByConversationAndPart(conversationId: number, part: number): Promise<MessageMapping | null>;
