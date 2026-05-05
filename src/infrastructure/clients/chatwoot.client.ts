@@ -278,23 +278,84 @@ export class ChatwootClient implements IChatwootClient {
     conversationId: number,
     payload: ChatwootCreateMessagePayload
   ): Promise<{ id: number; content: string }> {
-    const result = await this.accountRequest<
-      { payload: { id: number; content: string } } | { id: number; content: string }
-    >(
-      `/accounts/${this.accountId}/conversations/${conversationId}/messages`,
-      {
-        method: "POST",
-        body: JSON.stringify(payload),
-      }
-    );
+    const url = `${this.baseUrl}/api/v1/accounts/${this.accountId}/conversations/${conversationId}/messages`;
+    console.log(`[Chatwoot] Account API -> ${url}`);
 
-    // Handle both formats: { payload: { id, content } } and { id, content }
+    let response: Response;
+
+    if (payload.attachments && payload.attachments.length > 0) {
+      // Use multipart/form-data for attachments (Chatwoot requires this)
+      const formData = new FormData();
+      formData.append("content", payload.content);
+      formData.append("message_type", payload.message_type || "incoming");
+      formData.append("private", String(payload.private || false));
+
+      for (const attachment of payload.attachments) {
+        const buffer = Buffer.from(attachment.content, "base64");
+        const blob = new Blob([buffer], {
+          type: this.getMimeTypeFromFilename(attachment.filename),
+        });
+        formData.append("attachments[]", blob, attachment.filename);
+      }
+
+      response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Api-Access-Token": this.apiToken,
+        },
+        body: formData,
+      });
+    } else {
+      response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Api-Access-Token": this.apiToken,
+        },
+        body: JSON.stringify(payload),
+      });
+    }
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Chatwoot API error ${response.status}: ${text}`);
+    }
+
+    const result = await response.json() as
+      | { payload: { id: number; content: string } }
+      | { id: number; content: string };
+
     const message = (result as any).payload || result;
     if (!message || !message.id) {
       console.error("[Chatwoot] Unexpected createMessage response:", JSON.stringify(result));
       throw new Error("createMessage returned invalid response");
     }
     return message as { id: number; content: string };
+  }
+
+  private getMimeTypeFromFilename(filename: string): string {
+    const ext = filename.split(".").pop()?.toLowerCase();
+    switch (ext) {
+      case "jpg":
+      case "jpeg":
+        return "image/jpeg";
+      case "png":
+        return "image/png";
+      case "gif":
+        return "image/gif";
+      case "webp":
+        return "image/webp";
+      case "mp4":
+        return "video/mp4";
+      case "ogg":
+        return "audio/ogg";
+      case "mp3":
+        return "audio/mpeg";
+      case "pdf":
+        return "application/pdf";
+      default:
+        return "application/octet-stream";
+    }
   }
 
   async markConversationAsRead(conversationId: number, sourceId: string): Promise<void> {
