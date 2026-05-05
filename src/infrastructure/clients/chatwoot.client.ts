@@ -17,7 +17,7 @@ export class ChatwootClient implements IChatwootClient {
   private readonly inboxIdentifier: string;
 
   constructor() {
-    this.baseUrl = env.CHATWOOT_BASE_URL;
+    this.baseUrl = env.CHATWOOT_BASE_URL.replace(/\/$/, ""); // trim trailing slash
     this.accountId = env.CHATWOOT_ACCOUNT_ID;
     this.inboxId = env.CHATWOOT_INBOX_ID;
     this.apiToken = env.CHATWOOT_API_TOKEN;
@@ -29,6 +29,7 @@ export class ChatwootClient implements IChatwootClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseUrl}/api/v1${path}`;
+    console.log(`[Chatwoot] Account API -> ${url}`);
     const response = await fetch(url, {
       ...options,
       headers: {
@@ -55,6 +56,7 @@ export class ChatwootClient implements IChatwootClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseUrl}/public/api/v1/inboxes/${this.inboxIdentifier}${path}`;
+    console.log(`[Chatwoot] Public API -> ${url}`);
     const response = await fetch(url, {
       ...options,
       headers: {
@@ -111,33 +113,61 @@ export class ChatwootClient implements IChatwootClient {
   }
 
   async createContact(payload: ChatwootCreateContactPayload): Promise<CreateContactResult> {
-    // Use public inbox API to create contact already linked to the inbox
-    // Public API returns directly: { source_id, pubsub_token, contact }
-    const publicResult = await this.publicRequest<{
-      source_id: string;
-      pubsub_token: string;
-      contact: ChatwootContact;
-    }>("/contacts", {
-      method: "POST",
-      body: JSON.stringify({
-        name: payload.name,
-        phone_number: payload.phone_number,
-        email: payload.email,
-        identifier: payload.identifier,
-        avatar_url: payload.avatar_url,
-        custom_attributes: payload.custom_attributes,
-      }),
-    });
+    try {
+      // Try public inbox API first (creates contact already linked to inbox)
+      const publicResult = await this.publicRequest<{
+        source_id: string;
+        pubsub_token: string;
+        contact: ChatwootContact;
+      }>("/contacts", {
+        method: "POST",
+        body: JSON.stringify({
+          name: payload.name,
+          phone_number: payload.phone_number,
+          email: payload.email,
+          identifier: payload.identifier,
+          avatar_url: payload.avatar_url,
+          custom_attributes: payload.custom_attributes,
+        }),
+      });
 
-    // Enrich with account API to get full contact data with contact_inboxes
-    const fullContact = await this.accountRequest<{ payload: ChatwootContact }>(
-      `/accounts/${this.accountId}/contacts/${publicResult.contact.id}`
-    );
+      return {
+        contact: publicResult.contact,
+        sourceId: publicResult.source_id,
+      };
+    } catch (publicError) {
+      console.warn("[Chatwoot] Public API failed, falling back to Account API:", publicError);
 
-    return {
-      contact: fullContact.payload,
-      sourceId: publicResult.source_id,
-    };
+      // Fallback: use account API to create contact
+      const accountResult = await this.accountRequest<{ payload: ChatwootContact }>(
+        `/accounts/${this.accountId}/contacts`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            inbox_id: this.inboxId,
+            name: payload.name,
+            phone_number: payload.phone_number,
+            email: payload.email,
+            identifier: payload.identifier,
+            avatar_url: payload.avatar_url,
+            custom_attributes: payload.custom_attributes,
+          }),
+        }
+      );
+
+      const contact = accountResult.payload;
+
+      // Get source_id from contact_inboxes
+      const sourceId = contact.contact_inboxes?.find(
+        (ci) => ci.inbox.id === this.inboxId
+      )?.source_id;
+
+      if (!sourceId) {
+        throw new Error(`Contact created but no source_id found for inbox ${this.inboxId}`);
+      }
+
+      return { contact, sourceId };
+    }
   }
 
   async updateContactAttributes(
@@ -178,15 +208,31 @@ export class ChatwootClient implements IChatwootClient {
   }
 
   async createConversation(contactSourceId: string): Promise<ChatwootConversation> {
-    // Public API returns directly: { id, ... }
-    const result = await this.publicRequest<ChatwootConversation>(
-      `/contacts/${contactSourceId}/conversations`,
-      {
-        method: "POST",
-        body: JSON.stringify({}),
-      }
-    );
-    return result;
+    try {
+      const result = await this.publicRequest<ChatwootConversation>(
+        `/contacts/${contactSourceId}/conversations`,
+        {
+          method: "POST",
+          body: JSON.stringify({}),
+        }
+      );
+      return result;
+    } catch (publicError) {
+      console.warn("[Chatwoot] Public API createConversation failed, using Account API:", publicError);
+
+      const result = await this.accountRequest<{ payload: ChatwootConversation }>(
+        `/accounts/${this.accountId}/conversations`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            source_id: contactSourceId,
+            inbox_id: this.inboxId,
+            status: "open",
+          }),
+        }
+      );
+      return result.payload;
+    }
   }
 
   async createMessage(
