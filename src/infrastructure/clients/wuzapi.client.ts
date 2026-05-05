@@ -125,7 +125,7 @@ export class WuzapiClient implements IWuzapiClient {
   async sendButtons(
     payload: WuzapiSendButtonsPayload,
   ): Promise<WuzapiApiResponse<{ Id: string; Timestamp: string }>> {
-    return this.request("/chat/send/button", {
+    return this.request("/chat/send/buttons", {
       method: "POST",
       body: JSON.stringify(payload),
     });

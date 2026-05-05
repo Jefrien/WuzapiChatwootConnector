@@ -11,23 +11,23 @@ export interface WuzapiMessageInfo {
   BroadcastListOwner?: string;
   BroadcastRecipients?: unknown;
   Category?: string;
-  Chat: string;              // JID del chat: "40888608784419@lid" o "120363...@g.us"
+  Chat: string; // JID del chat: "40888608784419@lid" o "120363...@g.us"
   DeviceSentMeta?: unknown;
   Edit?: string;
-  ID: string;                // ID del mensaje
+  ID: string; // ID del mensaje
   IsFromMe: boolean;
   IsGroup: boolean;
-  MediaType?: string;        // "ptt", "image", etc.
+  MediaType?: string; // "ptt", "image", etc.
   MsgBotInfo?: unknown;
   MsgMetaInfo?: unknown;
   Multicast?: boolean;
-  PushName: string;          // Nombre del contacto
+  PushName: string; // Nombre del contacto
   RecipientAlt?: string;
-  Sender: string;            // JID del remitente
-  SenderAlt?: string;        // JID alternativo con número real: "50256207408@s.whatsapp.net"
+  Sender: string; // JID del remitente
+  SenderAlt?: string; // JID alternativo con número real: "50256207408@s.whatsapp.net"
   ServerID?: number;
-  Timestamp: string;         // ISO 8601
-  Type?: string;             // "media", "text", etc.
+  Timestamp: string; // ISO 8601
+  Type?: string; // "media", "text", etc.
   VerifiedName?: unknown;
 }
 
@@ -186,15 +186,26 @@ export interface WuzapiSendListPayload {
 }
 
 export interface WuzapiButton {
-  ButtonId: string;
-  ButtonText: string;
+  type: string;
+  title: string;
+  id: string;
+  url?: string;
+  phone_number?: string;
+  copy_code?: string;
 }
 
 export interface WuzapiSendButtonsPayload {
   Phone: string;
-  Body: string;
+  Body?: string;
+  Title?: string;
   Footer?: string;
+  Image?: string;
+  Id?: string;
   Buttons: WuzapiButton[];
+  ContextInfo?: {
+    StanzaId?: string;
+    Participant?: string;
+  };
 }
 
 export interface WuzapiApiResponse<T = unknown> {
