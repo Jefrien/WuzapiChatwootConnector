@@ -138,6 +138,7 @@ export class ProcessIncomingMessageUseCase {
         }
 
         console.log(`[Incoming] Wuzapi download response: success=${downloaded.success}, has_base64=${!!downloaded.data?.base64}, code=${downloaded.code}`);
+        console.log(`[Incoming] Wuzapi download raw response:`, JSON.stringify(downloaded));
 
         if (downloaded.success && downloaded.data?.base64) {
           // Remove data URI prefix if present (e.g. "data:image/jpeg;base64,")
