@@ -25,7 +25,8 @@ export interface IChatwootClient {
 
   createMessage(
     conversationId: number,
-    payload: ChatwootCreateMessagePayload
+    payload: ChatwootCreateMessagePayload,
+    accountId?: number
   ): Promise<{ id: number; content: string }>;
 
   markConversationAsRead(conversationId: number, sourceId: string): Promise<void>;

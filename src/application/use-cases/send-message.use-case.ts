@@ -6,6 +6,7 @@ import { MESSAGE_MAPPING_REPOSITORY_TOKEN, type IMessageMappingRepository } from
 export interface SendMessagePayload {
   phone: string;
   conversationId: number;
+  accountId?: number;
   type: "text" | "image" | "video" | "audio" | "document" | "sticker" | "location" | "list" | "buttons";
   content: string;
   mediaBase64?: string;
@@ -66,7 +67,7 @@ export class SendMessageUseCase {
       ];
     }
 
-    const chatwootMessage = await this.chatwootClient.createMessage(conversationId, chatwootPayload);
+    const chatwootMessage = await this.chatwootClient.createMessage(conversationId, chatwootPayload, payload.accountId);
     console.log(`[SendMessage] Chatwoot message created: ${chatwootMessage.id}`);
 
     // 2. Send to Wuzapi based on type

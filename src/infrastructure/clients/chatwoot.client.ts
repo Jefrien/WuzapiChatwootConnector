@@ -276,9 +276,11 @@ export class ChatwootClient implements IChatwootClient {
 
   async createMessage(
     conversationId: number,
-    payload: ChatwootCreateMessagePayload
+    payload: ChatwootCreateMessagePayload,
+    accountId?: number
   ): Promise<{ id: number; content: string }> {
-    const url = `${this.baseUrl}/api/v1/accounts/${this.accountId}/conversations/${conversationId}/messages`;
+    const effectiveAccountId = accountId ?? this.accountId;
+    const url = `${this.baseUrl}/api/v1/accounts/${effectiveAccountId}/conversations/${conversationId}/messages`;
     console.log(`[Chatwoot] Account API -> ${url}`);
 
     let response: Response;
