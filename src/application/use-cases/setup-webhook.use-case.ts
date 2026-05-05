@@ -17,7 +17,7 @@ export class SetupWebhookUseCase {
         "Message",
         "ReadReceipt",
       ]);
-      console.log("WebookSet", result);
+      console.log("WebookSet", result, connectorWebhookUrl);
       return result.success;
     } catch (error) {
       console.error("Failed to setup Wuzapi webhook:", error);
