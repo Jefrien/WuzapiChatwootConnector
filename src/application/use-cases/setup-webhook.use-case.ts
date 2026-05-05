@@ -1,11 +1,14 @@
 import { inject, injectable } from "tsyringe";
-import { WUZAPI_CLIENT_TOKEN, type IWuzapiClient } from "../ports/wuzapi-client.port";
+import {
+  WUZAPI_CLIENT_TOKEN,
+  type IWuzapiClient,
+} from "../ports/wuzapi-client.port";
 
 @injectable()
 export class SetupWebhookUseCase {
   constructor(
     @inject(WUZAPI_CLIENT_TOKEN)
-    private readonly wuzapiClient: IWuzapiClient
+    private readonly wuzapiClient: IWuzapiClient,
   ) {}
 
   async execute(connectorWebhookUrl: string): Promise<boolean> {
@@ -14,6 +17,7 @@ export class SetupWebhookUseCase {
         "Message",
         "ReadReceipt",
       ]);
+      console.log("WebookSet", result);
       return result.success;
     } catch (error) {
       console.error("Failed to setup Wuzapi webhook:", error);
