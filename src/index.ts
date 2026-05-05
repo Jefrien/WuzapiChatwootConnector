@@ -43,7 +43,7 @@ async function main() {
 
   // Auto-setup Wuzapi webhook if configured
   try {
-    const publicUrl = process.env.PUBLIC_URL;
+    const publicUrl = false;
     if (publicUrl) {
       const setupUseCase = container.resolve(SetupWebhookUseCase);
       const success = await setupUseCase.execute(
@@ -59,7 +59,7 @@ async function main() {
       console.log("ℹ️ Set PUBLIC_URL env var to auto-configure Wuzapi webhook");
     }
   } catch (error) {
-    console.error("Failed to setup webhook:", error);
+    //console.error("Failed to setup webhook:", error);
   }
 }
 
