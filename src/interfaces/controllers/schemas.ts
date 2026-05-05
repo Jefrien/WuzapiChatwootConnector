@@ -14,11 +14,11 @@ export const wuzapiWebhookSchema = z.object({
 
 export const chatwootWebhookSchema = z.object({
   event: z.string(),
-  message_type: z.enum(["incoming", "outgoing", "activity"]).optional(),
-  id: z.number().optional(),
-  content: z.string().optional(),
-  content_type: z.string().optional(),
-  private: z.boolean().optional(),
+  message_type: z.enum(["incoming", "outgoing", "activity"]).optional().nullable(),
+  id: z.number().optional().nullable(),
+  content: z.string().optional().nullable(),
+  content_type: z.string().optional().nullable(),
+  private: z.boolean().optional().nullable(),
   conversation: z
     .object({
       id: z.number(),
@@ -29,18 +29,21 @@ export const chatwootWebhookSchema = z.object({
         .object({
           source_id: z.string(),
         })
-        .optional(),
+        .optional()
+        .nullable(),
     })
-    .optional(),
+    .optional()
+    .nullable(),
   sender: z
     .object({
       id: z.number(),
       name: z.string(),
-      email: z.string().optional(),
-      phone_number: z.string().optional(),
-      thumbnail: z.string().optional(),
+      email: z.string().optional().nullable(),
+      phone_number: z.string().optional().nullable(),
+      thumbnail: z.string().optional().nullable(),
     })
-    .optional(),
+    .optional()
+    .nullable(),
   attachments: z
     .array(
       z.object({
@@ -49,11 +52,12 @@ export const chatwootWebhookSchema = z.object({
         message_id: z.number(),
         file_type: z.string(),
         file_size: z.number(),
-        data_url: z.string().optional(),
-        thumb_url: z.string().optional(),
-        extension: z.string().optional(),
+        data_url: z.string().optional().nullable(),
+        thumb_url: z.string().optional().nullable(),
+        extension: z.string().optional().nullable(),
       })
     )
-    .optional(),
-  content_attributes: z.any().optional(),
-});
+    .optional()
+    .nullable(),
+  content_attributes: z.any().optional().nullable(),
+}).passthrough(); // Allow extra fields from Chatwoot

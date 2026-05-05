@@ -170,32 +170,46 @@ export class ProcessOutgoingMessageUseCase {
   }
 
   private async extractPhone(payload: ChatwootMessagePayload): Promise<string | null> {
-    // Try sender phone
-    if (payload.sender?.phone_number) {
-      return payload.sender.phone_number.replace(/\+/g, "");
-    }
-
-    // Try conversation source_id (usually phone number)
+    // 1. Try conversation source_id (most reliable - it's the customer's phone)
     if (payload.conversation?.contact_inbox?.source_id) {
-      return payload.conversation.contact_inbox.source_id.replace(/\+/g, "");
+      const phone = payload.conversation.contact_inbox.source_id.replace(/\+/g, "").replace(/\D/g, "");
+      console.log(`[Outgoing] Phone from conversation.source_id: ${phone}`);
+      return phone;
     }
 
-    // Try to find mapping by conversation (most reliable fallback)
+    // 2. Try sender phone_number (sometimes present)
+    if (payload.sender?.phone_number) {
+      const phone = payload.sender.phone_number.replace(/\+/g, "").replace(/\D/g, "");
+      console.log(`[Outgoing] Phone from sender.phone_number: ${phone}`);
+      return phone;
+    }
+
+    // 3. Try to find mapping by conversation
     if (payload.conversation?.id) {
       const latestMapping = await this.mappingRepo.findLatestByConversation(
         payload.conversation.id
       );
       if (latestMapping) {
+        console.log(`[Outgoing] Phone from mapping repo (conversation): ${latestMapping.wuzapiPhone}`);
         return latestMapping.wuzapiPhone;
       }
     }
 
-    // Try to find mapping by message id
-    const mapping = await this.mappingRepo.findByChatwootId(payload.id);
-    if (mapping) {
-      return mapping.wuzapiPhone;
+    // 4. Try to find mapping by message id
+    if (payload.id) {
+      const mapping = await this.mappingRepo.findByChatwootId(payload.id);
+      if (mapping) {
+        console.log(`[Outgoing] Phone from mapping repo (message): ${mapping.wuzapiPhone}`);
+        return mapping.wuzapiPhone;
+      }
     }
 
+    console.error("[Outgoing] Could not extract phone from payload:", JSON.stringify({
+      conversation_id: payload.conversation?.id,
+      contact_inbox: payload.conversation?.contact_inbox,
+      sender_phone: payload.sender?.phone_number,
+      message_id: payload.id,
+    }));
     return null;
   }
 
