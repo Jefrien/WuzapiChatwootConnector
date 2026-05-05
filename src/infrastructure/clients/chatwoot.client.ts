@@ -130,11 +130,11 @@ export class ChatwootClient implements IChatwootClient {
         method: "POST",
         body: JSON.stringify({
           name: payload.name,
-          phone_number: payload.phone_number,
           email: payload.email,
           identifier: payload.identifier,
           avatar_url: payload.avatar_url,
           custom_attributes: payload.custom_attributes,
+          // Note: phone_number excluded from Client API to avoid E164 validation issues
         }),
       });
 
@@ -169,7 +169,9 @@ export class ChatwootClient implements IChatwootClient {
       console.warn("[Chatwoot] Public API failed, falling back to Account API:", publicError);
 
       // Fallback: use account API to create contact
-      const accountResult = await this.accountRequest<{ payload: ChatwootContact }>(
+      const accountResult = await this.accountRequest<
+        { payload: ChatwootContact } | ChatwootContact
+      >(
         `/accounts/${this.accountId}/contacts`,
         {
           method: "POST",
@@ -185,11 +187,11 @@ export class ChatwootClient implements IChatwootClient {
         }
       );
 
-      const contact = accountResult.payload;
+      const contact = ((accountResult as any).payload || accountResult) as ChatwootContact;
 
       // Get source_id from contact_inboxes
       const sourceId = contact.contact_inboxes?.find(
-        (ci) => ci.inbox.id === this.inboxId
+        (ci: { inbox: { id: number }; source_id: string }) => ci.inbox.id === this.inboxId
       )?.source_id;
 
       if (!sourceId) {
@@ -250,7 +252,9 @@ export class ChatwootClient implements IChatwootClient {
     } catch (publicError) {
       console.warn("[Chatwoot] Public API createConversation failed, using Account API:", publicError);
 
-      const result = await this.accountRequest<{ payload: ChatwootConversation }>(
+      const result = await this.accountRequest<
+        { payload: ChatwootConversation } | ChatwootConversation
+      >(
         `/accounts/${this.accountId}/conversations`,
         {
           method: "POST",
@@ -261,7 +265,12 @@ export class ChatwootClient implements IChatwootClient {
           }),
         }
       );
-      return result.payload;
+      const conversation = (result as any).payload || result;
+      if (!conversation || !conversation.id) {
+        console.error("[Chatwoot] Unexpected createConversation response:", JSON.stringify(result));
+        throw new Error("createConversation returned invalid response");
+      }
+      return conversation as ChatwootConversation;
     }
   }
 
@@ -269,14 +278,23 @@ export class ChatwootClient implements IChatwootClient {
     conversationId: number,
     payload: ChatwootCreateMessagePayload
   ): Promise<{ id: number; content: string }> {
-    const result = await this.accountRequest<{ payload: { id: number; content: string } }>(
+    const result = await this.accountRequest<
+      { payload: { id: number; content: string } } | { id: number; content: string }
+    >(
       `/accounts/${this.accountId}/conversations/${conversationId}/messages`,
       {
         method: "POST",
         body: JSON.stringify(payload),
       }
     );
-    return result.payload;
+
+    // Handle both formats: { payload: { id, content } } and { id, content }
+    const message = (result as any).payload || result;
+    if (!message || !message.id) {
+      console.error("[Chatwoot] Unexpected createMessage response:", JSON.stringify(result));
+      throw new Error("createMessage returned invalid response");
+    }
+    return message as { id: number; content: string };
   }
 
   async markConversationAsRead(conversationId: number, sourceId: string): Promise<void> {
