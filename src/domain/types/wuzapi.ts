@@ -161,6 +161,11 @@ export interface WuzapiDownloadMediaPayload {
   FileLength?: number;
 }
 
+export interface WuzapiDownloadMediaResponse {
+  Data: string;
+  Mimetype: string;
+}
+
 export interface WuzapiApiResponse<T = unknown> {
   code: number;
   data: T;

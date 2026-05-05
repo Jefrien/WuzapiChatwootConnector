@@ -7,6 +7,7 @@ import type {
   WuzapiSendStickerPayload,
   WuzapiSendLocationPayload,
   WuzapiDownloadMediaPayload,
+  WuzapiDownloadMediaResponse,
   WuzapiApiResponse,
   WuzapiSessionStatus,
   WuzapiWebhookConfig,
@@ -20,11 +21,11 @@ export interface IWuzapiClient {
   sendVideo(payload: WuzapiSendVideoPayload): Promise<WuzapiApiResponse<{ Id: string; Timestamp: string }>>;
   sendSticker(payload: WuzapiSendStickerPayload): Promise<WuzapiApiResponse<{ Id: string; Timestamp: string }>>;
   sendLocation(payload: WuzapiSendLocationPayload): Promise<WuzapiApiResponse<{ Id: string; Timestamp: string }>>;
-  downloadImage(payload: WuzapiDownloadMediaPayload): Promise<WuzapiApiResponse<{ base64: string; mimeType: string }>>;
-  downloadVideo(payload: WuzapiDownloadMediaPayload): Promise<WuzapiApiResponse<{ base64: string; mimeType: string }>>;
-  downloadAudio(payload: WuzapiDownloadMediaPayload): Promise<WuzapiApiResponse<{ base64: string; mimeType: string }>>;
-  downloadDocument(payload: WuzapiDownloadMediaPayload): Promise<WuzapiApiResponse<{ base64: string; mimeType: string }>>;
-  downloadSticker(payload: WuzapiDownloadMediaPayload): Promise<WuzapiApiResponse<{ base64: string; mimeType: string }>>;
+  downloadImage(payload: WuzapiDownloadMediaPayload): Promise<WuzapiApiResponse<WuzapiDownloadMediaResponse>>;
+  downloadVideo(payload: WuzapiDownloadMediaPayload): Promise<WuzapiApiResponse<WuzapiDownloadMediaResponse>>;
+  downloadAudio(payload: WuzapiDownloadMediaPayload): Promise<WuzapiApiResponse<WuzapiDownloadMediaResponse>>;
+  downloadDocument(payload: WuzapiDownloadMediaPayload): Promise<WuzapiApiResponse<WuzapiDownloadMediaResponse>>;
+  downloadSticker(payload: WuzapiDownloadMediaPayload): Promise<WuzapiApiResponse<WuzapiDownloadMediaResponse>>;
 
   getSessionStatus(): Promise<WuzapiApiResponse<WuzapiSessionStatus>>;
   getWebhook(): Promise<WuzapiApiResponse<WuzapiWebhookConfig>>;

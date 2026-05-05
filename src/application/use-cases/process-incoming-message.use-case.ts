@@ -137,16 +137,16 @@ export class ProcessIncomingMessageUseCase {
             throw new Error(`Unknown media type: ${mediaType}`);
         }
 
-        console.log(`[Incoming] Wuzapi download response: success=${downloaded.success}, has_base64=${!!downloaded.data?.base64}, code=${downloaded.code}`);
-        console.log(`[Incoming] Wuzapi download raw response:`, JSON.stringify(downloaded));
+        console.log(`[Incoming] Wuzapi download response: success=${downloaded.success}, has_data=${!!downloaded.data?.Data}, code=${downloaded.code}`);
 
-        if (downloaded.success && downloaded.data?.base64) {
+        if (downloaded.success && downloaded.data?.Data) {
           // Remove data URI prefix if present (e.g. "data:image/jpeg;base64,")
-          let base64 = downloaded.data.base64;
+          let base64 = downloaded.data.Data;
           if (base64.includes("base64,")) {
             base64 = base64.split("base64,")[1];
           }
-          const ext = this.getExtensionFromMime(media.mimetype || "");
+          const mimeType = downloaded.data.Mimetype || media.mimetype || "";
+          const ext = this.getExtensionFromMime(mimeType);
           const filename = `media_${Date.now()}${ext}`;
           chatwootPayload.attachments = [
             {
@@ -157,7 +157,7 @@ export class ProcessIncomingMessageUseCase {
           ];
           console.log(`[Incoming] Attachment prepared: ${filename} (${base64.length} chars)`);
         } else {
-          console.warn(`[Incoming] Wuzapi download failed or empty:`, downloaded.error || "no base64");
+          console.warn(`[Incoming] Wuzapi download failed or empty:`, downloaded.error || "no data");
         }
       } catch (err) {
         console.error(`[Incoming] Failed to download ${mediaType} media:`, err);

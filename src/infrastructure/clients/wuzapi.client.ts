@@ -10,6 +10,7 @@ import type {
   WuzapiSendStickerPayload,
   WuzapiSendLocationPayload,
   WuzapiDownloadMediaPayload,
+  WuzapiDownloadMediaResponse,
   WuzapiApiResponse,
   WuzapiSessionStatus,
   WuzapiWebhookConfig,
@@ -112,7 +113,7 @@ export class WuzapiClient implements IWuzapiClient {
 
   async downloadImage(
     payload: WuzapiDownloadMediaPayload
-  ): Promise<WuzapiApiResponse<{ base64: string; mimeType: string }>> {
+  ): Promise<WuzapiApiResponse<WuzapiDownloadMediaResponse>> {
     return this.request("/chat/downloadimage", {
       method: "POST",
       body: JSON.stringify(payload),
@@ -121,7 +122,7 @@ export class WuzapiClient implements IWuzapiClient {
 
   async downloadVideo(
     payload: WuzapiDownloadMediaPayload
-  ): Promise<WuzapiApiResponse<{ base64: string; mimeType: string }>> {
+  ): Promise<WuzapiApiResponse<WuzapiDownloadMediaResponse>> {
     return this.request("/chat/downloadvideo", {
       method: "POST",
       body: JSON.stringify(payload),
@@ -130,7 +131,7 @@ export class WuzapiClient implements IWuzapiClient {
 
   async downloadAudio(
     payload: WuzapiDownloadMediaPayload
-  ): Promise<WuzapiApiResponse<{ base64: string; mimeType: string }>> {
+  ): Promise<WuzapiApiResponse<WuzapiDownloadMediaResponse>> {
     return this.request("/chat/downloadaudio", {
       method: "POST",
       body: JSON.stringify(payload),
@@ -139,7 +140,7 @@ export class WuzapiClient implements IWuzapiClient {
 
   async downloadDocument(
     payload: WuzapiDownloadMediaPayload
-  ): Promise<WuzapiApiResponse<{ base64: string; mimeType: string }>> {
+  ): Promise<WuzapiApiResponse<WuzapiDownloadMediaResponse>> {
     return this.request("/chat/downloaddocument", {
       method: "POST",
       body: JSON.stringify(payload),
@@ -148,7 +149,7 @@ export class WuzapiClient implements IWuzapiClient {
 
   async downloadSticker(
     payload: WuzapiDownloadMediaPayload
-  ): Promise<WuzapiApiResponse<{ base64: string; mimeType: string }>> {
+  ): Promise<WuzapiApiResponse<WuzapiDownloadMediaResponse>> {
     return this.request("/chat/downloadsticker", {
       method: "POST",
       body: JSON.stringify(payload),
