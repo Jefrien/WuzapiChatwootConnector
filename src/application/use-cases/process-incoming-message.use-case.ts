@@ -203,6 +203,7 @@ export class ProcessIncomingMessageUseCase {
       messageId: info.ID,
       sender: info.Sender,
       chatId: info.Chat,
+      wuzapiPhone: phone,
     };
 
     // 5. Send message to Chatwoot
