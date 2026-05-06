@@ -220,7 +220,7 @@ export class SendMessageUseCase {
         wuzapiResult = await this.wuzapiClient.sendButtons({
           Phone: phone,
           Body: content,
-          Title: payload.buttonsPayload.image ? undefined : content.substring(0, 20),
+          Title: " ",
           Footer: payload.buttonsPayload.footer,
           Image: payload.buttonsPayload.image,
           Id: payload.buttonsPayload.id,
