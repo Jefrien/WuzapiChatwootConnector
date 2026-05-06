@@ -125,4 +125,5 @@ export interface ChatwootCreateMessagePayload {
     filename: string;
     encoding: "base64";
   }>;
+  content_attributes?: Record<string, unknown>;
 }

@@ -1,9 +1,24 @@
 import { inject, injectable } from "tsyringe";
-import type { WuzapiMessageEvent, WuzapiMediaMessage } from "../../domain/types/wuzapi";
-import type { ChatwootCreateContactPayload, ChatwootCreateMessagePayload } from "../../domain/types/chatwoot";
-import { CHATWOOT_CLIENT_TOKEN, type IChatwootClient } from "../ports/chatwoot-client.port";
-import { WUZAPI_CLIENT_TOKEN, type IWuzapiClient } from "../ports/wuzapi-client.port";
-import { MESSAGE_MAPPING_REPOSITORY_TOKEN, type IMessageMappingRepository } from "../ports/message-mapping.repository.port";
+import type {
+  WuzapiMessageEvent,
+  WuzapiMediaMessage,
+} from "../../domain/types/wuzapi";
+import type {
+  ChatwootCreateContactPayload,
+  ChatwootCreateMessagePayload,
+} from "../../domain/types/chatwoot";
+import {
+  CHATWOOT_CLIENT_TOKEN,
+  type IChatwootClient,
+} from "../ports/chatwoot-client.port";
+import {
+  WUZAPI_CLIENT_TOKEN,
+  type IWuzapiClient,
+} from "../ports/wuzapi-client.port";
+import {
+  MESSAGE_MAPPING_REPOSITORY_TOKEN,
+  type IMessageMappingRepository,
+} from "../ports/message-mapping.repository.port";
 
 @injectable()
 export class ProcessIncomingMessageUseCase {
@@ -13,10 +28,13 @@ export class ProcessIncomingMessageUseCase {
     @inject(WUZAPI_CLIENT_TOKEN)
     private readonly wuzapiClient: IWuzapiClient,
     @inject(MESSAGE_MAPPING_REPOSITORY_TOKEN)
-    private readonly mappingRepo: IMessageMappingRepository
+    private readonly mappingRepo: IMessageMappingRepository,
   ) {}
 
-  async execute(payload: { event?: WuzapiMessageEvent; type?: string }): Promise<void> {
+  async execute(payload: {
+    event?: WuzapiMessageEvent;
+    type?: string;
+  }): Promise<void> {
     const event = payload.event;
     if (!event) {
       console.log("[Incoming] No event in payload");
@@ -58,7 +76,8 @@ export class ProcessIncomingMessageUseCase {
         contactPayload.phone_number = phone;
       }
 
-      const createResult = await this.chatwootClient.createContact(contactPayload);
+      const createResult =
+        await this.chatwootClient.createContact(contactPayload);
       contact = createResult.contact;
       contactSourceId = createResult.sourceId;
 
@@ -72,9 +91,8 @@ export class ProcessIncomingMessageUseCase {
         // Ignore avatar errors
       }
     } else {
-      contactSourceId = contact.contact_inboxes?.find(
-        (ci) => ci.inbox?.id
-      )?.source_id || "";
+      contactSourceId =
+        contact.contact_inboxes?.find((ci) => ci.inbox?.id)?.source_id || "";
 
       await this.chatwootClient.updateContactAttributes(contact.id, {
         whatsapp_chat_id: chatId,
@@ -83,12 +101,15 @@ export class ProcessIncomingMessageUseCase {
     }
 
     // 2. Find or create conversation
-    let conversation = await this.chatwootClient.findConversationByContactId(contact.id);
+    let conversation = await this.chatwootClient.findConversationByContactId(
+      contact.id,
+    );
     if (!conversation) {
       if (!contactSourceId) {
         throw new Error(`No source_id found for contact ${contact.id}`);
       }
-      conversation = await this.chatwootClient.createConversation(contactSourceId);
+      conversation =
+        await this.chatwootClient.createConversation(contactSourceId);
     }
 
     // 3. Build message content
@@ -128,16 +149,20 @@ export class ProcessIncomingMessageUseCase {
             downloaded = await this.wuzapiClient.downloadAudio(downloadPayload);
             break;
           case "document":
-            downloaded = await this.wuzapiClient.downloadDocument(downloadPayload);
+            downloaded =
+              await this.wuzapiClient.downloadDocument(downloadPayload);
             break;
           case "sticker":
-            downloaded = await this.wuzapiClient.downloadSticker(downloadPayload);
+            downloaded =
+              await this.wuzapiClient.downloadSticker(downloadPayload);
             break;
           default:
             throw new Error(`Unknown media type: ${mediaType}`);
         }
 
-        console.log(`[Incoming] Wuzapi download response: success=${downloaded.success}, has_data=${!!downloaded.data?.Data}, code=${downloaded.code}`);
+        console.log(
+          `[Incoming] Wuzapi download response: success=${downloaded.success}, has_data=${!!downloaded.data?.Data}, code=${downloaded.code}`,
+        );
 
         if (downloaded.success && downloaded.data?.Data) {
           // Remove data URI prefix if present (e.g. "data:image/jpeg;base64,")
@@ -155,23 +180,35 @@ export class ProcessIncomingMessageUseCase {
               encoding: "base64",
             },
           ];
-          console.log(`[Incoming] Attachment prepared: ${filename} (${base64.length} chars)`);
+          console.log(
+            `[Incoming] Attachment prepared: ${filename} (${base64.length} chars)`,
+          );
         } else {
-          console.warn(`[Incoming] Wuzapi download failed or empty:`, downloaded.error || "no data");
+          console.warn(
+            `[Incoming] Wuzapi download failed or empty:`,
+            downloaded.error || "no data",
+          );
         }
       } catch (err) {
         console.error(`[Incoming] Failed to download ${mediaType} media:`, err);
         // Include the URL in the text as fallback
         if (media.URL) {
-          chatwootPayload.content = `${messageContent.text}\n${media.URL}`.trim();
+          chatwootPayload.content =
+            `${messageContent.text}\n${media.URL}`.trim();
         }
       }
     }
 
+    chatwootPayload.content_attributes = {
+      messageId: info.ID,
+      sender: info.Sender,
+      chatId: info.Chat,
+    };
+
     // 5. Send message to Chatwoot
     const chatwootMessage = await this.chatwootClient.createMessage(
       conversation.id,
-      chatwootPayload
+      chatwootPayload,
     );
 
     // 6. Save mapping
@@ -185,16 +222,19 @@ export class ProcessIncomingMessageUseCase {
     });
 
     console.log(
-      `[Incoming] Synced WA message ${info.ID} (${phone}) -> Chatwoot message ${chatwootMessage.id}`
+      `[Incoming] Synced WA message ${info.ID} (${phone}) -> Chatwoot message ${chatwootMessage.id}`,
     );
   }
 
-  private extractPhone(info: WuzapiMessageEvent["Info"]): { phone: string; isRealNumber: boolean } {
+  private extractPhone(info: WuzapiMessageEvent["Info"]): {
+    phone: string;
+    isRealNumber: boolean;
+  } {
     const raw = info.SenderAlt || info.Sender;
 
     // Clean JID: remove :N suffix and domain
     const clean = raw
-      .replace(/:\d+/, "")              // quitar :4, :53, etc.
+      .replace(/:\d+/, "") // quitar :4, :53, etc.
       .replace(/@s\.whatsapp\.net/, "")
       .replace(/@lid/, "")
       .replace(/@g\.us/, "")
@@ -209,7 +249,11 @@ export class ProcessIncomingMessageUseCase {
     return { phone, isRealNumber };
   }
 
-  private buildMessageContent(event: WuzapiMessageEvent): { text: string; media?: WuzapiMediaMessage; mediaType?: string } {
+  private buildMessageContent(event: WuzapiMessageEvent): {
+    text: string;
+    media?: WuzapiMediaMessage;
+    mediaType?: string;
+  } {
     const msg = event.Message;
     let text = "";
     let media: WuzapiMediaMessage | undefined;
