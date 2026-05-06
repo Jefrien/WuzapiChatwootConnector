@@ -52,6 +52,12 @@ export class ProcessIncomingMessageUseCase {
       return;
     }
 
+    // Skip WhatsApp status/broadcast messages
+    if (chatId === "status@broadcast") {
+      console.log("[Incoming] Skipping WhatsApp status broadcast");
+      return;
+    }
+
     // 1. Find or create contact
     let contact = await this.chatwootClient.findContactByIdentifier(chatId);
     if (!contact) {
