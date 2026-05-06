@@ -91,6 +91,16 @@ export interface WuzapiMessageEvent {
       type?: number;
       key?: { id?: string };
     };
+    templateButtonReplyMessage?: {
+      selectedDisplayText?: string;
+      selectedId?: string;
+    };
+    listResponseMessage?: {
+      title?: string;
+      singleSelectReply?: {
+        selectedRowId?: string;
+      };
+    };
     messageContextInfo?: unknown;
   };
   RawMessage?: unknown;

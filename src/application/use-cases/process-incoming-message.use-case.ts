@@ -269,11 +269,31 @@ export class ProcessIncomingMessageUseCase {
       return { text: `👍 Reaction: ${msg.reactionMessage.text}` };
     }
 
-    // Text
+    // Text (normal or extended)
     if (msg.conversation) {
       text = msg.conversation;
     } else if (msg.extendedTextMessage?.text) {
       text = msg.extendedTextMessage.text;
+    }
+
+    // Button reply
+    if (msg.templateButtonReplyMessage?.selectedDisplayText) {
+      text = msg.templateButtonReplyMessage.selectedDisplayText;
+    }
+
+    // List reply
+    if (msg.listResponseMessage?.title) {
+      text = msg.listResponseMessage.title;
+    }
+
+    // Fallback to RawMessage for button/list replies (some Wuzapi versions send it there)
+    if (!text && event.RawMessage) {
+      const raw = event.RawMessage as any;
+      if (raw.templateButtonReplyMessage?.selectedDisplayText) {
+        text = raw.templateButtonReplyMessage.selectedDisplayText;
+      } else if (raw.listResponseMessage?.title) {
+        text = raw.listResponseMessage.title;
+      }
     }
 
     let mediaType: string | undefined;
