@@ -3,6 +3,7 @@ import { container } from "tsyringe";
 import { createHmac } from "crypto";
 import { ProcessOutgoingMessageUseCase } from "../../application/use-cases/process-outgoing-message.use-case";
 import { MESSAGE_MAPPING_REPOSITORY_TOKEN } from "../../application/ports/message-mapping.repository.port";
+import { wasMessageSentByApi } from "../../application/utils/dedup";
 import { env } from "../../config";
 
 export const chatwootWebhookController = new Hono();
@@ -49,10 +50,15 @@ chatwootWebhookController.post("/chatwoot", async (c) => {
       }
 
       // Check if this message was already sent by our /send-message API
+      // Check in-memory first (fast, prevents race conditions), then SQLite
+      if (wasMessageSentByApi(body.id)) {
+        console.log(`[Chatwoot Webhook] Skipping message ${body.id} - already sent by API (memory)`);
+        return c.json({ success: true });
+      }
       const mappingRepo = container.resolve(MESSAGE_MAPPING_REPOSITORY_TOKEN) as any;
       const existingMapping = await mappingRepo.findByChatwootId(body.id);
       if (existingMapping) {
-        console.log(`[Chatwoot Webhook] Skipping message ${body.id} - already sent by API`);
+        console.log(`[Chatwoot Webhook] Skipping message ${body.id} - already sent by API (db)`);
         return c.json({ success: true });
       }
 

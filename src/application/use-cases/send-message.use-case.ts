@@ -11,6 +11,7 @@ import {
   MESSAGE_MAPPING_REPOSITORY_TOKEN,
   type IMessageMappingRepository,
 } from "../ports/message-mapping.repository.port";
+import { markMessageAsApiSent } from "../utils/dedup";
 
 export interface SendMessagePayload {
   phone: string;
@@ -110,7 +111,8 @@ export class SendMessageUseCase {
       `[SendMessage] Chatwoot message created: ${chatwootMessage.id}`,
     );
 
-    // Save PENDING mapping immediately to prevent webhook from re-sending
+    // Mark in-memory + SQLite immediately to prevent webhook race condition
+    markMessageAsApiSent(chatwootMessage.id);
     await this.mappingRepo.save({
       wuzapiMessageId: "PENDING",
       chatwootMessageId: chatwootMessage.id,
@@ -220,8 +222,8 @@ export class SendMessageUseCase {
         wuzapiResult = await this.wuzapiClient.sendButtons({
           Phone: phone,
           Body: content,
-          Title: " ",
-          Footer: payload.buttonsPayload.footer,
+          Title: payload.buttonsPayload.footer,
+          Footer: " ",
           Image: payload.buttonsPayload.image,
           Id: payload.buttonsPayload.id,
           Buttons: payload.buttonsPayload.buttons.map((b) => ({
