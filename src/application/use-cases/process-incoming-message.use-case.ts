@@ -116,6 +116,16 @@ export class ProcessIncomingMessageUseCase {
       }
       conversation =
         await this.chatwootClient.createConversation(contactSourceId);
+    } else if (conversation.status === "resolved") {
+      // Reactivate resolved/deleted conversation
+      console.log(
+        `[Incoming] Reactivating resolved conversation ${conversation.id}`,
+      );
+      await this.chatwootClient.updateConversationStatus(
+        conversation.id,
+        "open",
+      );
+      conversation.status = "open";
     }
 
     // 3. Build message content

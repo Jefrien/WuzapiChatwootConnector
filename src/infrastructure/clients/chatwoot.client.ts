@@ -230,8 +230,9 @@ export class ChatwootClient implements IChatwootClient {
       const result = await this.accountRequest<{ payload: ChatwootConversation[] }>(
         `/accounts/${this.accountId}/contacts/${contactId}/conversations`
       );
+      // Include resolved conversations so we can reopen them
       const conversation = result.payload?.find(
-        (c) => c.inbox_id === this.inboxId && c.status !== "resolved"
+        (c) => c.inbox_id === this.inboxId
       );
       return conversation || null;
     } catch {
@@ -272,6 +273,19 @@ export class ChatwootClient implements IChatwootClient {
       }
       return conversation as ChatwootConversation;
     }
+  }
+
+  async updateConversationStatus(
+    conversationId: number,
+    status: "open" | "pending" | "resolved" | "snoozed"
+  ): Promise<void> {
+    await this.accountRequest(
+      `/accounts/${this.accountId}/conversations/${conversationId}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      }
+    );
   }
 
   async createMessage(

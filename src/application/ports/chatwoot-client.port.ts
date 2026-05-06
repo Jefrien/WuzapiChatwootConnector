@@ -22,6 +22,10 @@ export interface IChatwootClient {
 
   findConversationByContactId(contactId: number): Promise<ChatwootConversation | null>;
   createConversation(contactSourceId: string): Promise<ChatwootConversation>;
+  updateConversationStatus(
+    conversationId: number,
+    status: "open" | "pending" | "resolved" | "snoozed"
+  ): Promise<void>;
 
   createMessage(
     conversationId: number,
