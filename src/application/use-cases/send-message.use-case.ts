@@ -35,13 +35,19 @@ export interface SendMessagePayload {
   locationName?: string;
   locationAddress?: string;
   listPayload?: {
-    title: string;
-    description: string;
+    title?: string;
+    description?: string;
     buttonText: string;
+    footerText?: string;
+    id?: string;
     sections: Array<{
       title: string;
       rows: Array<{ rowId: string; title: string; description: string }>;
     }>;
+    contextInfo?: {
+      StanzaID?: string;
+      Participant?: string;
+    };
   };
   buttonsPayload?: {
     footer?: string;
@@ -200,20 +206,34 @@ export class SendMessageUseCase {
       case "list": {
         if (!payload.listPayload)
           throw new Error("listPayload is required for list messages");
-        wuzapiResult = await this.wuzapiClient.sendList({
+        if (!Array.isArray(payload.listPayload.sections) || payload.listPayload.sections.length === 0) {
+          throw new Error("listPayload.sections must be a non-empty array");
+        }
+        const listPayload: any = {
           Phone: phone,
-          Title: payload.listPayload.title,
-          Description: payload.listPayload.description,
           ButtonText: payload.listPayload.buttonText,
-          Sections: payload.listPayload.sections.map((s) => ({
-            Title: s.title,
-            Rows: s.rows.map((r) => ({
-              RowId: r.rowId,
-              Title: r.title,
-              Description: r.description,
-            })),
-          })),
-        });
+          Sections: payload.listPayload.sections.map((s, i) => {
+            if (!Array.isArray(s.rows)) {
+              throw new Error(`listPayload.sections[${i}].rows must be an array`);
+            }
+            return {
+              title: s.title,
+              rows: s.rows.map((r) => ({
+                title: r.title,
+                desc: r.description,
+                RowId: r.rowId,
+              })),
+            };
+          }),
+        };
+        // Wuzapi uses Desc/TopText for title, FooterText for footer
+        const topText = payload.listPayload.title || payload.listPayload.description || "";
+        if (topText) listPayload.Desc = topText;
+        if (payload.listPayload.footerText) listPayload.FooterText = payload.listPayload.footerText;
+        if (payload.listPayload.id) listPayload.Id = payload.listPayload.id;
+        if (payload.listPayload.contextInfo) listPayload.ContextInfo = payload.listPayload.contextInfo;
+
+        wuzapiResult = await this.wuzapiClient.sendList(listPayload);
         break;
       }
       case "buttons": {

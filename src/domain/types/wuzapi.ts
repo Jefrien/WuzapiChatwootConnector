@@ -177,22 +177,29 @@ export interface WuzapiDownloadMediaResponse {
 }
 
 export interface WuzapiListRow {
+  title: string;
+  desc: string;
   RowId: string;
-  Title: string;
-  Description: string;
 }
 
 export interface WuzapiListSection {
-  Title: string;
-  Rows: WuzapiListRow[];
+  title: string;
+  rows: WuzapiListRow[];
 }
 
 export interface WuzapiSendListPayload {
   Phone: string;
-  Title: string;
-  Description: string;
   ButtonText: string;
+  Desc?: string;
+  TopText?: string;
+  FooterText?: string;
+  Id?: string;
   Sections: WuzapiListSection[];
+  List?: WuzapiListRow[];
+  ContextInfo?: {
+    StanzaID?: string;
+    Participant?: string;
+  };
 }
 
 export interface WuzapiButton {
