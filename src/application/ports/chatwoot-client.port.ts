@@ -29,6 +29,12 @@ export interface IChatwootClient {
     accountId?: number
   ): Promise<{ id: number; content: string }>;
 
+  getMessages(
+    conversationId: number,
+    accountId?: number,
+    before?: number
+  ): Promise<any[]>;
+
   markConversationAsRead(conversationId: number, sourceId: string): Promise<void>;
 }
 

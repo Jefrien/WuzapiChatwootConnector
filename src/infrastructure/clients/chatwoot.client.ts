@@ -360,6 +360,34 @@ export class ChatwootClient implements IChatwootClient {
     }
   }
 
+  async getMessages(
+    conversationId: number,
+    accountId?: number,
+    before?: number
+  ): Promise<any[]> {
+    const effectiveAccountId = accountId ?? this.accountId;
+    let url = `${this.baseUrl}/api/v1/accounts/${effectiveAccountId}/conversations/${conversationId}/messages`;
+    if (before) {
+      url += `?before=${before}`;
+    }
+    console.log(`[Chatwoot] Account API -> ${url}`);
+
+    const response = await fetch(url, {
+      headers: {
+        "Api-Access-Token": this.apiToken,
+      },
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Chatwoot API error ${response.status}: ${text}`);
+    }
+
+    const data = await response.json() as any;
+    // Chatwoot returns { payload: [...] } or [...] depending on version
+    return data?.payload || data || [];
+  }
+
   async markConversationAsRead(conversationId: number, sourceId: string): Promise<void> {
     try {
       await fetch(
