@@ -7,6 +7,7 @@ import { wuzapiWebhookController } from "./interfaces/controllers/wuzapi-webhook
 import { chatwootWebhookController } from "./interfaces/controllers/chatwoot-webhook.controller";
 import { sendMessageController } from "./interfaces/controllers/send-message.controller";
 import { messagesController } from "./interfaces/controllers/messages.controller";
+import { conversationsController } from "./interfaces/controllers/conversations.controller";
 import { SetupWebhookUseCase } from "./application/use-cases/setup-webhook.use-case";
 import { container } from "tsyringe";
 
@@ -30,6 +31,7 @@ async function main() {
   app.route("/webhooks", chatwootWebhookController);
   app.route("/", sendMessageController);
   app.route("/", messagesController);
+  app.route("/", conversationsController);
 
   // Start server
   const port = env.PORT;

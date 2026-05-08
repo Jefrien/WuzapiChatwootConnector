@@ -1,5 +1,12 @@
 import { z } from "zod";
 
+export const updateConversationCustomAttributesSchema = z.object({
+  custom_attributes: z.record(
+    z.string(),
+    z.union([z.string(), z.number(), z.boolean(), z.null()]),
+  ),
+});
+
 export const wuzapiWebhookSchema = z.object({
   type: z.string(),
   event: z.any().optional(),

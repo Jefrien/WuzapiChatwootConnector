@@ -27,6 +27,11 @@ export interface IChatwootClient {
     status: "open" | "pending" | "resolved" | "snoozed"
   ): Promise<void>;
 
+  updateConversationCustomAttributes(
+    conversationId: number,
+    attributes: Record<string, string | number | boolean | null>
+  ): Promise<void>;
+
   createMessage(
     conversationId: number,
     payload: ChatwootCreateMessagePayload,

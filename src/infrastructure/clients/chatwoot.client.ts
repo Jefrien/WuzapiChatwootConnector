@@ -288,6 +288,19 @@ export class ChatwootClient implements IChatwootClient {
     );
   }
 
+  async updateConversationCustomAttributes(
+    conversationId: number,
+    attributes: Record<string, string | number | boolean | null>
+  ): Promise<void> {
+    await this.accountRequest(
+      `/accounts/${this.accountId}/conversations/${conversationId}/custom_attributes`,
+      {
+        method: "POST",
+        body: JSON.stringify({ custom_attributes: attributes }),
+      }
+    );
+  }
+
   async createMessage(
     conversationId: number,
     payload: ChatwootCreateMessagePayload,
